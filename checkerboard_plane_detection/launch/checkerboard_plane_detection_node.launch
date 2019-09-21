@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+  <param name = "/use_sim_time" value="true"/>
+  <param name = "x_min" type= "double" value= "0.75"/>
+  <param name = "x_max" type= "double" value= "4"/>
+  <param name = "y_min" type= "double" value= "-1"/>
+  <param name = "y_max" type= "double" value= "1"/>
+  <param name = "z_min" type= "double" value= "-0.5"/>
+  <param name = "z_max" type= "double" value= "3"/>
+  <param name = "ransac_threshold" type= "double" value= "0.01"/>
+
+  <node  pkg="checkerboard_plane_detection" name="checkerboard_plane_detection" type="checkerboard_plane_detection_node" output="screen">
+	<remap from="/cloud_in" to="/velodyne_points"/>
+  </node>
+</launch>
