@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <param name ="/use_sim_time" value="true"/>
+    <param name ="lidar_input_topic_name" value="/velodyne_points" type="string"/>
+    <param name="edge_threshold" value="0.005" type="double"/>
+    <node  pkg="lidar_edge_detector"
+           name="lidar_edge_detector_node"
+           type="lidar_edge_detector_node"
+           output="screen">
+    </node>
+</launch>
