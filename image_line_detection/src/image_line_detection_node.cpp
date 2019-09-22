@@ -9,11 +9,12 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
+#include "normal_msg/normal.h"
 
 #define FX 6.4372590342756985e+02
 #define FY 6.4372590342756985e+02
-#define  CX 3.9534097290039062e+02
-#define  CY 3.0199901199340820e+02
+#define CX 3.9534097290039062e+02
+#define CY 3.0199901199340820e+02
 
 struct labelledLine {
     cv::Vec4f line;
@@ -23,7 +24,12 @@ struct labelledLine {
 };
 std::vector<labelledLine> lls;
 
-void getEqnOfPlane(cv::Vec3f line) {
+ros::Publisher normal_pub_lt;
+ros::Publisher normal_pub_rt;
+ros::Publisher normal_pub_rb;
+ros::Publisher normal_pub_lb;
+
+cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
     cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
     cv::Mat line_vec = cv::Mat::zeros(3, 1, CV_64FC1);
     K.at<double>(0, 0) = FX;
@@ -36,10 +42,11 @@ void getEqnOfPlane(cv::Vec3f line) {
     line_vec.at<double>(2) = line(2);
     cv::transpose(K, K);
     cv::Mat normal_c = K*line_vec;
-    cv::Vec3d normal_vec(normal_c.at<double>(0),
+    cv::Vec3f normal_vec(normal_c.at<double>(0),
                          normal_c.at<double>(1),
                          normal_c.at<double>(2));
-    ROS_INFO_STREAM("Normal Equation: " << cv::normalize(normal_vec));
+//    ROS_INFO_STREAM("Normal Equation: " << cv::normalize(normal_vec));
+    return normal_vec;
 }
 
 cv::Vec3f getEqnOfLine(cv::Vec4f line) {
@@ -96,30 +103,54 @@ void drawLineSegments(cv::Mat image_in) {
     ROS_ASSERT(lls.size() == 4);
     std::vector<double> slopes_ordered(4);
     std::vector<cv::Vec4f> lines_ordered(4);
+    normal_msg::normal n_lt;
+    normal_msg::normal n_rt;
+    normal_msg::normal n_rb;
+    normal_msg::normal n_lb;
     for(size_t i = 0; i < 4; i++) {
         char labelX = lls[i].labelX;
         char labelY = lls[i].labelY;
         if(labelX == 'l' && labelY == 't') {
             slopes_ordered[0] = lls[i].slope;
             lines_ordered[0] = lls[i].line;
+            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
+            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            n_lt.a = normal_eqn(0);
+            n_lt.b = normal_eqn(1);
+            n_lt.b = normal_eqn(2);
+            normal_pub_lt.publish(n_lt);
         }
 
         if(labelX == 'r' && labelY == 't') {
             slopes_ordered[1] = lls[i].slope;
             lines_ordered[1] = lls[i].line;
+            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
+            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            n_rt.a = normal_eqn(0);
+            n_rt.b = normal_eqn(1);
+            n_rt.b = normal_eqn(2);
+            normal_pub_rt.publish(n_rt);
         }
 
         if(labelX == 'r' && labelY == 'b') {
             slopes_ordered[2] = lls[i].slope;
             lines_ordered[2] = lls[i].line;
+            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
+            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            n_rb.a = normal_eqn(0);
+            n_rb.b = normal_eqn(1);
+            n_rb.b = normal_eqn(2);
+            normal_pub_rb.publish(n_rb);
         }
 
         if(labelX == 'l' && labelY == 'b') {
             slopes_ordered[3] = lls[i].slope;
             lines_ordered[3] = lls[i].line;
+            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
+            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
         }
     }
-
+    std::cout << std::endl;
     double angle1 =
             fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
     double angle2 =
@@ -326,5 +357,9 @@ int main(int argc, char **argv) {
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber sub = it.subscribe("/camera/image", 1, imageCallback);
+    normal_pub_lt = nh.advertise<normal_msg::normal>("/normal1", 1);
+    normal_pub_rt = nh.advertise<normal_msg::normal>("/normal2", 1);
+    normal_pub_rb = nh.advertise<normal_msg::normal>("/normal3", 1);
+    normal_pub_lb = nh.advertise<normal_msg::normal>("/normal4", 1);
     ros::spin();
 }
