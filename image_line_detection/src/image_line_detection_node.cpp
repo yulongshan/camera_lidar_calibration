@@ -29,6 +29,8 @@ ros::Publisher normal_pub_rt;
 ros::Publisher normal_pub_rb;
 ros::Publisher normal_pub_lb;
 
+std_msgs::Header global_header;
+
 cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
     cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
     cv::Mat line_vec = cv::Mat::zeros(3, 1, CV_64FC1);
@@ -46,7 +48,7 @@ cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
                          normal_c.at<double>(1),
                          normal_c.at<double>(2));
 //    ROS_INFO_STREAM("Normal Equation: " << cv::normalize(normal_vec));
-    return normal_vec;
+    return cv::normalize(normal_vec);
 }
 
 cv::Vec3f getEqnOfLine(cv::Vec4f line) {
@@ -115,9 +117,11 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[0] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            ROS_INFO_STREAM("Normal Equation lt: " << normal_eqn);
+            n_lt.header.stamp = global_header.stamp;
             n_lt.a = normal_eqn(0);
             n_lt.b = normal_eqn(1);
-            n_lt.b = normal_eqn(2);
+            n_lt.c = normal_eqn(2);
             normal_pub_lt.publish(n_lt);
         }
 
@@ -126,9 +130,11 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[1] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            ROS_INFO_STREAM("Normal Equation rt: " << normal_eqn);
+            n_rt.header.stamp = global_header.stamp;
             n_rt.a = normal_eqn(0);
             n_rt.b = normal_eqn(1);
-            n_rt.b = normal_eqn(2);
+            n_rt.c = normal_eqn(2);
             normal_pub_rt.publish(n_rt);
         }
 
@@ -137,9 +143,11 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[2] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            ROS_INFO_STREAM("Normal Equation rb: " << normal_eqn);
+            n_rb.header.stamp = global_header.stamp;
             n_rb.a = normal_eqn(0);
             n_rb.b = normal_eqn(1);
-            n_rb.b = normal_eqn(2);
+            n_rb.c = normal_eqn(2);
             normal_pub_rb.publish(n_rb);
         }
 
@@ -148,6 +156,12 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[3] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+            ROS_INFO_STREAM("Normal Equation lb: " << normal_eqn);
+            n_lb.header.stamp = global_header.stamp;
+            n_lb.a = normal_eqn(0);
+            n_lb.b = normal_eqn(1);
+            n_lb.c = normal_eqn(2);
+            normal_pub_lb.publish(n_lb);
         }
     }
     std::cout << std::endl;
@@ -344,6 +358,7 @@ void detectLines(cv::Mat image_in) {
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     try{
+        global_header.stamp = msg->header.stamp;
         detectLines(cv_bridge::toCvShare(msg, "bgr8")->image);
     }
     catch (cv_bridge::Exception& e){

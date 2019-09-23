@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+  <param name ="/use_sim_time" value="true"/>
+  <node  pkg="calibration" name="calibration_node" type="calibration_node" output="screen">
+  </node>
+</launch>
