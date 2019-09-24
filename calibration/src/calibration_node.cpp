@@ -9,6 +9,15 @@
 
 #include <calibration_error_term.h>
 
+#include "ceres/ceres.h"
+#include "glog/logging.h"
+
+#include "ceres/rotation.h"
+#include "ceres/covariance.h"
+
+#include <pcl/io/pcd_io.h>
+#include <pcl_ros/point_cloud.h>
+
 typedef message_filters::sync_policies::ApproximateTime
        <sensor_msgs::PointCloud2,
         sensor_msgs::PointCloud2,
@@ -32,6 +41,8 @@ private:
     message_filters::Subscriber<normal_msg::normal> *normal4_sub;
 
     message_filters::Synchronizer<SyncPolicy> *sync;
+
+    int no_of_views;
 
 public:
     calib() {
@@ -64,6 +75,7 @@ public:
                 *normal1_sub, *normal2_sub, *normal3_sub, *normal4_sub);
         sync->registerCallback(boost::bind(&calib::callback, this, _1, _2, _3, _4
                                                                  , _5, _6, _7, _8));
+        no_of_views = 0;
     }
 
     void callback(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
@@ -74,7 +86,59 @@ public:
                   const normal_msg::normalConstPtr &norm2_msg,
                   const normal_msg::normalConstPtr &norm3_msg,
                   const normal_msg::normalConstPtr &norm4_msg) {
-        ROS_INFO_STREAM("At Callback");
+        pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
+        pcl::fromROSMsg(*line1_msg, line_1_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_2_pcl;
+        pcl::fromROSMsg(*line2_msg, line_2_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_3_pcl;
+        pcl::fromROSMsg(*line3_msg, line_3_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_4_pcl;
+        pcl::fromROSMsg(*line4_msg, line_4_pcl);
+
+        Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
+                                  norm1_msg->b,
+                                  norm1_msg->c);
+        for(int i = 0; i < line_1_pcl.points.size(); i++) {
+            Eigen::Vector3d point(line_1_pcl.points[i].x,
+                                  line_1_pcl.points[i].y,
+                                  line_1_pcl.points[i].z);
+            // Add residual here
+        }
+
+        Eigen::Vector3d normal2 = Eigen::Vector3d(norm2_msg->a,
+                                  norm2_msg->b,
+                                  norm2_msg->c);
+        for(int i = 0; i < line_2_pcl.points.size(); i++) {
+            Eigen::Vector3d point(line_2_pcl.points[i].x,
+                                  line_2_pcl.points[i].y,
+                                  line_2_pcl.points[i].z);
+            // Add residual here
+        }
+
+        Eigen::Vector3d normal3 = Eigen::Vector3d(norm3_msg->a,
+                                                  norm3_msg->b,
+                                                  norm3_msg->c);
+        for(int i = 0; i < line_3_pcl.points.size(); i++) {
+            Eigen::Vector3d point(line_3_pcl.points[i].x,
+                                  line_3_pcl.points[i].y,
+                                  line_3_pcl.points[i].z);
+            // Add residual here
+        }
+
+        Eigen::Vector3d normal4 = Eigen::Vector3d(norm4_msg->a,
+                                  norm4_msg->b,
+                                  norm4_msg->c);
+        for(int i = 0; i < line_4_pcl.points.size(); i++) {
+            Eigen::Vector3d point(line_4_pcl.points[i].x,
+                                  line_4_pcl.points[i].y,
+                                  line_4_pcl.points[i].z);
+            // Add residual here
+        }
+
+        // This is temporary, think of an intelligent way
+        if(++no_of_views > 50) {
+
+        }
     }
 };
 
