@@ -7,6 +7,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <calibration_error_term.h>
 
 typedef message_filters::sync_policies::ApproximateTime
        <sensor_msgs::PointCloud2,

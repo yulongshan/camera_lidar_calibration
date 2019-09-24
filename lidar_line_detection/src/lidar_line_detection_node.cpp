@@ -92,7 +92,7 @@ public:
         std::vector<std::pair<double, int>> dists_axis_mp;
         for(int i = 0; i < 4; i++) {
             Eigen::Vector3d centroid_i = getCentroid(lls[i].line_pts);
-            std::cout << centroid_i.transpose() << std::endl;
+//            std::cout << centroid_i.transpose() << std::endl;
             if(axis == 'z')
                 dists_axis_mp.push_back(std::make_pair(centroid_i.z(), i));
             else if(axis == 'y')

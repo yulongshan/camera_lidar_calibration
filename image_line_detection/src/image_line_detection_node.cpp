@@ -117,7 +117,7 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[0] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-            ROS_INFO_STREAM("Normal Equation lt: " << normal_eqn);
+//            ROS_INFO_STREAM("Normal Equation lt: " << normal_eqn);
             n_lt.header.stamp = global_header.stamp;
             n_lt.a = normal_eqn(0);
             n_lt.b = normal_eqn(1);
@@ -130,7 +130,7 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[1] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-            ROS_INFO_STREAM("Normal Equation rt: " << normal_eqn);
+//            ROS_INFO_STREAM("Normal Equation rt: " << normal_eqn);
             n_rt.header.stamp = global_header.stamp;
             n_rt.a = normal_eqn(0);
             n_rt.b = normal_eqn(1);
@@ -143,7 +143,7 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[2] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-            ROS_INFO_STREAM("Normal Equation rb: " << normal_eqn);
+//            ROS_INFO_STREAM("Normal Equation rb: " << normal_eqn);
             n_rb.header.stamp = global_header.stamp;
             n_rb.a = normal_eqn(0);
             n_rb.b = normal_eqn(1);
@@ -156,7 +156,7 @@ void drawLineSegments(cv::Mat image_in) {
             lines_ordered[3] = lls[i].line;
             cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
             cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-            ROS_INFO_STREAM("Normal Equation lb: " << normal_eqn);
+//            ROS_INFO_STREAM("Normal Equation lb: " << normal_eqn);
             n_lb.header.stamp = global_header.stamp;
             n_lb.a = normal_eqn(0);
             n_lb.b = normal_eqn(1);
@@ -164,7 +164,7 @@ void drawLineSegments(cv::Mat image_in) {
             normal_pub_lb.publish(n_lb);
         }
     }
-    std::cout << std::endl;
+//    std::cout << std::endl;
     double angle1 =
             fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
     double angle2 =
