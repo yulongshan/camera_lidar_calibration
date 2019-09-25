@@ -18,6 +18,9 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
 
+#include <fstream>
+#include <iostream>
+
 typedef message_filters::sync_policies::ApproximateTime
        <sensor_msgs::PointCloud2,
         sensor_msgs::PointCloud2,
@@ -48,6 +51,8 @@ private:
     Eigen::Vector3d axis_angle;
     Eigen::Vector3d translation;
     Eigen::VectorXd R_t;
+
+    std::string result_str;
 
     ceres::Problem problem;
 public:
@@ -83,7 +88,16 @@ public:
                                                                  , _5, _6, _7, _8));
         no_of_views = 0;
 
-        Rotn = Eigen::Matrix3d::Identity();
+        Rotn = Eigen::Matrix3d::Zero();
+        Rotn(0, 0) = 0;
+        Rotn(0, 1) = -1;
+        Rotn(0, 2) = 0;
+        Rotn(1, 0) = 0;
+        Rotn(1, 1) = 0;
+        Rotn(1, 2) = -1;
+        Rotn(2, 0) = 1;
+        Rotn(2, 1) = 0;
+        Rotn(2, 2) = 0;
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
         translation = Eigen::Vector3d(0,0, 0);
         R_t = Eigen::VectorXd(6);
@@ -95,6 +109,8 @@ public:
         R_t(5) = translation(2);
 
         problem.AddParameterBlock(R_t.data(), 6);
+
+        result_str = "/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt";
     }
 
     void callback(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
@@ -187,9 +203,15 @@ public:
             Eigen::MatrixXd C_T_L(3, 4);
             C_T_L.block(0, 0, 3, 3) = Rotn;
             C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-
+            std::cout << C_T_L << std::endl;
             std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
             std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+
+            std::ofstream results;
+            results.open(result_str);
+            results << C_T_L;
+            results.close();
+
             ros::shutdown();
         }
     }
