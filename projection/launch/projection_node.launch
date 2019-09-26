@@ -3,6 +3,7 @@
 
   <param name ="/use_sim_time" value="true"/>
   <node  pkg="projection" name="projection_node" type="projection_node" output="screen">
-	<remap from="/image_in" to="/nerian_stereo/left_image"/>
+	  <remap from="/image_in" to="/nerian_stereo/left_image"/>
+      <remap from="/cloud_in" to="/velodyne_points"/>
   </node>
 </launch>

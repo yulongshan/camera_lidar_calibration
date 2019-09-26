@@ -110,7 +110,11 @@ public:
         pcl::copyPointCloud<pcl::PointXYZI>(*cloud_filtered_xy,
                                             inlier_indices,
                                             *plane);
+//        ROS_INFO_STREAM("Model Coeffs: " << ransac.model_coefficients_);
 //        ROS_INFO_STREAM("No of points on plane: " << plane->points.size());
+//        Eigen::VectorXf plane_coeff = ransac.model_coefficients_;
+//        std::cout << plane_coeff.transpose() << std::endl;
+//        Eigen::Vector3f normal = Eigen::Vector3f(plane_coeff(0), plane_coeff(1), plane_coeff(2));
         // Publish detected plane
         sensor_msgs::PointCloud2 cloud_out_ros;
         pcl::toROSMsg(*plane, cloud_out_ros);

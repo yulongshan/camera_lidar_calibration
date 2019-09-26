@@ -98,6 +98,17 @@ public:
         Rotn(2, 0) = 1;
         Rotn(2, 1) = 0;
         Rotn(2, 2) = 0;
+
+//        Rotn(0, 0) = 1;
+//        Rotn(0, 1) = 0;
+//        Rotn(0, 2) = 0;
+//        Rotn(1, 0) = 0;
+//        Rotn(1, 1) = 1;
+//        Rotn(1, 2) = 0;
+//        Rotn(2, 0) = 0;
+//        Rotn(2, 1) = 0;
+//        Rotn(2, 2) = 1;
+
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
         translation = Eigen::Vector3d(0,0, 0);
         R_t = Eigen::VectorXd(6);
@@ -189,7 +200,7 @@ public:
 
         // This is temporary, think of an intelligent way
         ROS_INFO_STREAM("Collected view: " << ++no_of_views);
-        if(no_of_views > 50) {
+        if(no_of_views > 25) {
             /// Step 4: Solve it
             ceres::Solver::Options options;
             options.max_num_iterations = 200;

@@ -161,7 +161,7 @@ public:
         for (int i = 0; i < 4; i++){
             pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(plane);
             pcl::SampleConsensusModelLine<pcl::PointXYZI>::Ptr model_l(new
-                                                                               pcl::SampleConsensusModelLine<pcl::PointXYZI>(plane_ptr));
+                        pcl::SampleConsensusModelLine<pcl::PointXYZI>(plane_ptr));
             pcl::RandomSampleConsensus<pcl::PointXYZI> ransac_l(model_l);
             ransac_l.setDistanceThreshold(0.02);
             ransac_l.computeModel();

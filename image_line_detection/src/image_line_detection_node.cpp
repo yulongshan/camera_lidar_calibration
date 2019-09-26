@@ -101,6 +101,43 @@ cv::Point2f getIntersection(cv::Vec4f line_1, cv::Vec4f line_2) {
     return pt;
 }
 
+std::vector<cv::Point2f> getPose(cv::Point2f pt1,
+                                 cv::Point2f pt2,
+                                 cv::Point2f pt3,
+                                 cv::Point2f pt4) {
+    std::vector<cv::Point2f> imagePoints;
+    imagePoints.push_back(pt1);
+    imagePoints.push_back(pt2);
+    imagePoints.push_back(pt3);
+    imagePoints.push_back(pt4);
+
+    double side_len = 0.608;
+    std::vector<cv::Point3f> objectPoints;
+    objectPoints.push_back(cv::Point3f(0, 0, 0));
+    objectPoints.push_back(cv::Point3f(0, side_len, 0));
+    objectPoints.push_back(cv::Point3f(side_len, side_len, 0));
+    objectPoints.push_back(cv::Point3f(side_len, 0, 0));
+
+    cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
+    K.at<double>(0, 0) = FX;
+    K.at<double>(1, 1) = FY;
+    K.at<double>(0, 2) = CX;
+    K.at<double>(1, 2) = CY;
+    K.at<double>(2, 2) = 1.0;
+
+    cv::Mat D = cv::Mat::zeros(4, 1, CV_64FC1);
+
+    cv::Mat rvec(3, 1, CV_64FC1);
+    cv::Mat tvec(3, 1, CV_64FC1);
+
+    cv::solvePnP(objectPoints, imagePoints, K, D, rvec, tvec);
+
+    std::vector<cv::Point2f> imagePoints_proj;
+    cv::projectPoints(objectPoints, rvec, tvec, K, D, imagePoints_proj, cv::noArray(), 0);
+//    std::cout << tvec << std::endl;
+    return imagePoints_proj;
+}
+
 void drawLineSegments(cv::Mat image_in) {
     ROS_ASSERT(lls.size() == 4);
     std::vector<double> slopes_ordered(4);
@@ -238,7 +275,7 @@ void drawLineSegments(cv::Mat image_in) {
         cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
         cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
         cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
-
+        std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
         cv::circle(image_in, pt1, 7,
                    cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
         cv::circle(image_in, pt2, 7,
@@ -247,6 +284,15 @@ void drawLineSegments(cv::Mat image_in) {
                    cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
         cv::circle(image_in, pt4, 7,
                    cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+
+        cv::circle(image_in, re_projected_pts[0], 7,
+                   cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[1], 7,
+                   cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[2], 7,
+                   cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[3], 7,
+                   cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
     }
     cv::imshow("view", image_in);
     cv::waitKey(1);
