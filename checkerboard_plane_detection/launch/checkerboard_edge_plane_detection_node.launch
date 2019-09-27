@@ -10,8 +10,8 @@
   <param name = "z_max" type= "double" value= "3"/>
   <param name = "ransac_threshold" type= "double" value= "0.01"/>
 
-  <node  pkg="checkerboard_plane_detection" name="checkerboard_plane_detection" type="checkerboard_plane_detection_node" output="screen">
-	<remap from="/cloud_in" to="/velodyne_points"/>
-        <remap from="/plane_out" to="/velodyne_points/plane"/>
+  <node  pkg="checkerboard_plane_detection" name="checkerboard_edge_plane_detection" type="checkerboard_plane_detection_node" output="screen">
+	<remap from="/cloud_in" to="/velodyne_points/with_edges"/>
+        <remap from="/plane_out" to="/velodyne_points/with_edges/plane"/>
   </node>
 </launch>

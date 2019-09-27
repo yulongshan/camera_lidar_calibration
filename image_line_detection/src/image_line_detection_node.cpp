@@ -4,12 +4,15 @@
 
 #include <iostream>
 #include <string>
+
 #include <opencv2/imgproc.hpp>
 #include <opencv2/ximgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
+
 #include "normal_msg/normal.h"
+
 
 #define FX 6.4372590342756985e+02
 #define FY 6.4372590342756985e+02
@@ -28,6 +31,7 @@ ros::Publisher normal_pub_lt;
 ros::Publisher normal_pub_rt;
 ros::Publisher normal_pub_rb;
 ros::Publisher normal_pub_lb;
+ros::Publisher normal_pub_chkrbrd;
 
 std_msgs::Header global_header;
 
@@ -134,6 +138,16 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
 
     std::vector<cv::Point2f> imagePoints_proj;
     cv::projectPoints(objectPoints, rvec, tvec, K, D, imagePoints_proj, cv::noArray(), 0);
+    cv::Mat C_R_W;
+    cv::Rodrigues(rvec, C_R_W);
+
+    normal_msg::normal n_plane;
+    n_plane.header.stamp = global_header.stamp;
+    n_plane.a = C_R_W.at<double>(0, 2);
+    n_plane.b = C_R_W.at<double>(1, 2);
+    n_plane.c = C_R_W.at<double>(2, 2);
+
+    normal_pub_chkrbrd.publish(n_plane);
 //    std::cout << tvec << std::endl;
     return imagePoints_proj;
 }
@@ -201,7 +215,6 @@ void drawLineSegments(cv::Mat image_in) {
             normal_pub_lb.publish(n_lb);
         }
     }
-//    std::cout << std::endl;
     double angle1 =
             fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
     double angle2 =
@@ -422,5 +435,6 @@ int main(int argc, char **argv) {
     normal_pub_rt = nh.advertise<normal_msg::normal>("/normal2", 1);
     normal_pub_rb = nh.advertise<normal_msg::normal>("/normal3", 1);
     normal_pub_lb = nh.advertise<normal_msg::normal>("/normal4", 1);
+    normal_pub_chkrbrd = nh.advertise<normal_msg::normal>("/normal_plane", 1);
     ros::spin();
 }

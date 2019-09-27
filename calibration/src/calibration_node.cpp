@@ -29,7 +29,11 @@ typedef message_filters::sync_policies::ApproximateTime
         normal_msg::normal,
         normal_msg::normal,
         normal_msg::normal,
-        normal_msg::normal> SyncPolicy;
+        normal_msg::normal> SyncPolicy1;
+
+typedef message_filters::sync_policies::ApproximateTime
+        <sensor_msgs::PointCloud2,
+         normal_msg::normal> SyncPolicy2;
 
 class calib {
 private:
@@ -43,7 +47,11 @@ private:
     message_filters::Subscriber<normal_msg::normal> *normal3_sub;
     message_filters::Subscriber<normal_msg::normal> *normal4_sub;
 
-    message_filters::Synchronizer<SyncPolicy> *sync;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *chkrbrdplane_sub;
+    message_filters::Subscriber<normal_msg::normal> *normal_sub;
+
+    message_filters::Synchronizer<SyncPolicy1> *sync1;
+    message_filters::Synchronizer<SyncPolicy2> *sync2;
 
     int no_of_views;
 
@@ -69,6 +77,9 @@ public:
         line4_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh, "/line4_out", 1);
+        chkrbrdplane_sub = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh, "/velodyne_points/plane", 1);
         normal1_sub = new
                 message_filters::Subscriber
                         <normal_msg::normal>(nh, "/normal1", 1);
@@ -81,12 +92,18 @@ public:
         normal4_sub = new
                 message_filters::Subscriber
                         <normal_msg::normal>(nh, "/normal4", 1);
-        sync = new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(10),
+        normal_sub = new
+                message_filters::Subscriber
+                        <normal_msg::normal>(nh, "/normal_plane", 1);
+
+        sync1 = new message_filters::Synchronizer<SyncPolicy1>(SyncPolicy1(10),
                 *line1_sub, *line2_sub, *line3_sub, *line4_sub,
                 *normal1_sub, *normal2_sub, *normal3_sub, *normal4_sub);
-        sync->registerCallback(boost::bind(&calib::callback, this, _1, _2, _3, _4
-                                                                 , _5, _6, _7, _8));
-        no_of_views = 0;
+        sync1->registerCallback(boost::bind(&calib::callbackLines, this, _1, _2, _3, _4, _5, _6, _7, _8));
+
+        sync2 = new message_filters::Synchronizer<SyncPolicy2>(SyncPolicy2(10),
+                                                               *chkrbrdplane_sub, *normal_sub);
+        sync2->registerCallback(boost::bind(&calib::callbackPlane, this, _1, _2));
 
         Rotn = Eigen::Matrix3d::Zero();
         Rotn(0, 0) = 0;
@@ -98,17 +115,6 @@ public:
         Rotn(2, 0) = 1;
         Rotn(2, 1) = 0;
         Rotn(2, 2) = 0;
-
-//        Rotn(0, 0) = 1;
-//        Rotn(0, 1) = 0;
-//        Rotn(0, 2) = 0;
-//        Rotn(1, 0) = 0;
-//        Rotn(1, 1) = 1;
-//        Rotn(1, 2) = 0;
-//        Rotn(2, 0) = 0;
-//        Rotn(2, 1) = 0;
-//        Rotn(2, 2) = 1;
-
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
         translation = Eigen::Vector3d(0,0, 0);
         R_t = Eigen::VectorXd(6);
@@ -122,9 +128,16 @@ public:
         problem.AddParameterBlock(R_t.data(), 6);
 
         result_str = "/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt";
+
+        no_of_views = 0;
     }
 
-    void callback(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
+    void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
+                       const normal_msg::normalConstPtr &norm_msg) {
+        ROS_INFO_STREAM("At plane callback");
+    }
+
+    void callbackLines(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
                   const sensor_msgs::PointCloud2ConstPtr &line2_msg,
                   const sensor_msgs::PointCloud2ConstPtr &line3_msg,
                   const sensor_msgs::PointCloud2ConstPtr &line4_msg,
