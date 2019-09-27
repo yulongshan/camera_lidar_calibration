@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
 
-  <param name ="/use_sim_time" value="true"/>
+  <param name = "/use_sim_time" value="true"/>
+  <param name = "useLines" value="true"/>
+  <param name = "usePlane" value="false"/>
+  <param name = "max_no_of_line_views" value="10"/>
+  <param name = "max_no_of_plane_views" value="15"/>
   <node  pkg="calibration" name="calibration_node" type="calibration_node" output="screen">
   </node>
 </launch>

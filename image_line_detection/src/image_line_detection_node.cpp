@@ -32,6 +32,7 @@ ros::Publisher normal_pub_rt;
 ros::Publisher normal_pub_rb;
 ros::Publisher normal_pub_lb;
 ros::Publisher normal_pub_chkrbrd;
+ros::Publisher tvec_pub_chkrbrd;
 
 std_msgs::Header global_header;
 
@@ -147,7 +148,13 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     n_plane.b = C_R_W.at<double>(1, 2);
     n_plane.c = C_R_W.at<double>(2, 2);
 
+    normal_msg::normal tvec_plane;
+    tvec_plane.header.stamp = global_header.stamp;
+    tvec_plane.a = tvec.at<double>(0);
+    tvec_plane.b = tvec.at<double>(1);
+    tvec_plane.c = tvec.at<double>(2);
     normal_pub_chkrbrd.publish(n_plane);
+    tvec_pub_chkrbrd.publish(tvec_plane);
 //    std::cout << tvec << std::endl;
     return imagePoints_proj;
 }
@@ -436,5 +443,6 @@ int main(int argc, char **argv) {
     normal_pub_rb = nh.advertise<normal_msg::normal>("/normal3", 1);
     normal_pub_lb = nh.advertise<normal_msg::normal>("/normal4", 1);
     normal_pub_chkrbrd = nh.advertise<normal_msg::normal>("/normal_plane", 1);
+    tvec_pub_chkrbrd = nh.advertise<normal_msg::normal>("/tvec_plane", 1);
     ros::spin();
 }
