@@ -15,12 +15,15 @@ class CalibrationErrorTermLine {
 private:
     const Eigen::Vector3d laser_line_point_;
     const Eigen::Vector3d normal_to_bp_plane_;
+    const double sqrt_wt_;
 
 public:
     CalibrationErrorTermLine(const Eigen::Vector3d& laser_line_point,
-                         const Eigen::Vector3d& normal_to_bp_plane):
+                         const Eigen::Vector3d& normal_to_bp_plane,
+                         const double& sqrt_wt):
                          laser_line_point_(laser_line_point),
-                         normal_to_bp_plane_(normal_to_bp_plane)
+                         normal_to_bp_plane_(normal_to_bp_plane),
+                         sqrt_wt_(sqrt_wt)
                          {}
 
     template <typename T>
@@ -40,6 +43,7 @@ public:
         Eigen::Matrix<T, 3, 1> laser_point_C(l_pt_C);
         Eigen::Matrix<T, 3, 1> normal_C(n_C);
         residual[0] = normal_C.normalized().dot(laser_point_C);
+        residual[0] = sqrt_wt_ * residual[0];
         return true;
     }
 };
@@ -48,11 +52,15 @@ class CalibrationErrorTermPlane {
 private:
     const Eigen::Vector3d laser_point_;
     const Eigen::Vector3d normal_to_plane_;
+    const double sqrt_wt_;
 
 public:
     CalibrationErrorTermPlane(const Eigen::Vector3d& laser_point,
-                         const Eigen::Vector3d& normal_to_plane):
-            laser_point_(laser_point), normal_to_plane_(normal_to_plane)
+                              const Eigen::Vector3d& normal_to_plane,
+                              const double& sqrt_wt):
+            laser_point_(laser_point),
+            normal_to_plane_(normal_to_plane),
+            sqrt_wt_(sqrt_wt)
     {}
 
     template  <typename  T>
@@ -69,6 +77,7 @@ public:
         Eigen::Matrix<T, 3, 1> laser_point_L(l_pt_L);
         Eigen::Matrix<T, 3, 1> normal_C(n_C);
         residual[0] = normal_C.normalized().dot(laser_point_C) - normal_C.norm();
+        residual[0] = sqrt_wt_ * residual[0];
         return true;
     }
 };

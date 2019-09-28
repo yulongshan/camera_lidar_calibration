@@ -44,6 +44,8 @@ private:
     int image_width, image_height;
 
     std::vector<cv::Point3d> objectPoints_L;
+    std::vector<cv::Point3d> objectPoints_C;
+
     std::vector<cv::Point2d> imagePoints;
     double fov_x, fov_y;
 
@@ -118,6 +120,7 @@ public:
     void callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg,
                   const sensor_msgs::ImageConstPtr &image_msg) {
         objectPoints_L.clear();
+        objectPoints_C.clear();
         imagePoints.clear();
 
         cv::Mat image_in;
@@ -131,6 +134,10 @@ public:
 
         pcl::PointCloud<pcl::PointXYZ> cloud_pcl;
         pcl::fromROSMsg(*cloud_msg, cloud_pcl);
+
+        double max_range, min_range;
+        max_range = -INFINITY;
+        min_range = INFINITY;
 
         for(int i = 0; i < cloud_pcl.points.size(); i++) {
 
@@ -160,10 +167,25 @@ public:
             if(Yangle < -fov_y/2 || Yangle > fov_y/2)
                 continue;
             objectPoints_L.push_back(cv::Point3d(pointCloud_L[0], pointCloud_L[1], pointCloud_L[2]));
+            objectPoints_C.push_back(cv::Point3d(X, Y, Z));
+            double range = sqrt(X*X + Y*Y + Z*Z);
+
+            if(range > max_range) {
+                max_range = range;
+            }
+            if(range < min_range) {
+                min_range = range;
+            }
         }
         cv::projectPoints(objectPoints_L, rvec, tvec, K, D, imagePoints, cv::noArray());
         for(int i = 0; i < imagePoints.size(); i++) {
-            cv::circle(image_in, imagePoints[i], 1, cv::Scalar(0, 255, 0), -1, 1, 0);
+            double X = objectPoints_C[i].x;
+            double Y = objectPoints_C[i].y;
+            double Z = objectPoints_C[i].z;
+            double range = sqrt(X*X + Y*Y + Z*Z);
+            double red_field = 255*(range - min_range)/(max_range - min_range);
+            double green_field = 255*(max_range - range)/(max_range - min_range);
+            cv::circle(image_in, imagePoints[i], 1, cv::Scalar(0, green_field, red_field), -1, 1, 0);
         }
         cv::imshow("view", image_in);
         cv::waitKey(1);

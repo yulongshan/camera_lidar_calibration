@@ -193,6 +193,7 @@ public:
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
             ceres::LossFunction *loss_function = NULL;
             if(r3.dot(Nc_old) < 0.95) {
+                double p_i_sqrt = 1/sqrt((double)plane_pcl.points.size());
                 for(int i = 0; i < plane_pcl.points.size(); i++) {
                     Eigen::Vector3d lidar_point(plane_pcl.points[i].x,
                                                 plane_pcl.points[i].y,
@@ -200,7 +201,7 @@ public:
                     // Add residual here
                     ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-                            (new CalibrationErrorTermPlane(lidar_point, Nc));
+                            (new CalibrationErrorTermPlane(lidar_point, Nc, p_i_sqrt));
                     problem.AddResidualBlock(cost_function, loss_function, R_t.data());
                 }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
@@ -229,9 +230,11 @@ public:
             pcl::fromROSMsg(*line4_msg, line_4_pcl);
 
             ceres::LossFunction *loss_function = NULL;
+
             Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
                                                       norm1_msg->b,
                                                       norm1_msg->c);
+            double p_i_sqrt_1 = 1/sqrt((double)line_1_pcl.points.size());
             for(int i = 0; i < line_1_pcl.points.size(); i++) {
                 Eigen::Vector3d lidar_point(line_1_pcl.points[i].x,
                                             line_1_pcl.points[i].y,
@@ -239,13 +242,14 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                         ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-                        (new CalibrationErrorTermLine(lidar_point, normal1));
+                        (new CalibrationErrorTermLine(lidar_point, normal1, p_i_sqrt_1));
                 problem.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
 
             Eigen::Vector3d normal2 = Eigen::Vector3d(norm2_msg->a,
                                                       norm2_msg->b,
                                                       norm2_msg->c);
+            double p_i_sqrt_2 = 1/sqrt((double)line_2_pcl.points.size());
             for(int i = 0; i < line_2_pcl.points.size(); i++) {
                 Eigen::Vector3d lidar_point(line_2_pcl.points[i].x,
                                             line_2_pcl.points[i].y,
@@ -253,13 +257,14 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                         ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-                        (new CalibrationErrorTermLine(lidar_point, normal2));
+                        (new CalibrationErrorTermLine(lidar_point, normal2, p_i_sqrt_2));
                 problem.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
 
             Eigen::Vector3d normal3 = Eigen::Vector3d(norm3_msg->a,
                                                       norm3_msg->b,
                                                       norm3_msg->c);
+            double p_i_sqrt_3 = 1/sqrt((double)line_3_pcl.points.size());
             for(int i = 0; i < line_3_pcl.points.size(); i++) {
                 Eigen::Vector3d lidar_point(line_3_pcl.points[i].x,
                                             line_3_pcl.points[i].y,
@@ -267,13 +272,14 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                         ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-                        (new CalibrationErrorTermLine(lidar_point, normal3));
+                        (new CalibrationErrorTermLine(lidar_point, normal3, p_i_sqrt_3));
                 problem.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
 
             Eigen::Vector3d normal4 = Eigen::Vector3d(norm4_msg->a,
                                                       norm4_msg->b,
                                                       norm4_msg->c);
+            double p_i_sqrt_4 = 1/sqrt((double)line_4_pcl.points.size());
             for(int i = 0; i < line_4_pcl.points.size(); i++) {
                 Eigen::Vector3d lidar_point(line_4_pcl.points[i].x,
                                             line_4_pcl.points[i].y,
@@ -281,7 +287,7 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                         ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-                        (new CalibrationErrorTermLine(lidar_point, normal4));
+                        (new CalibrationErrorTermLine(lidar_point, normal4, p_i_sqrt_4));
                 problem.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
             ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
@@ -290,84 +296,41 @@ public:
     }
 
     void checkStatus() {
-        if(!usePlane && useLines && no_of_line_views >= max_no_of_line_views) {
-            /// Step 4: Solve it
-            ceres::Solver::Options options;
-            options.max_num_iterations = 200;
-            options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-            options.minimizer_progress_to_stdout = true;
-            ceres::Solver::Summary summary;
-            ceres::Solve(options, &problem, &summary);
-            std::cout << summary.FullReport() << '\n';
-            /// Printing and Storing C_T_L in a file
-            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
-            Eigen::MatrixXd C_T_L(3, 4);
-            C_T_L.block(0, 0, 3, 3) = Rotn;
-            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-            std::cout << C_T_L << std::endl;
-            std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
-            std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+        bool lineOnlyCond = !usePlane && useLines && no_of_line_views >= max_no_of_line_views;
+        bool planeOnlyCond = usePlane && !useLines && no_of_plane_views >= max_no_of_plane_views;
+        bool bothLineAndPlane = usePlane && useLines &&
+                                no_of_plane_views >= max_no_of_plane_views &&
+                                no_of_line_views >= max_no_of_line_views;
 
-            std::ofstream results;
-            results.open(result_str);
-            results << C_T_L;
-            results.close();
-
-            ros::shutdown();
-        } else if(usePlane && !useLines && no_of_plane_views >= max_no_of_plane_views) {
-            /// Step 4: Solve it
-            ceres::Solver::Options options;
-            options.max_num_iterations = 200;
-            options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-            options.minimizer_progress_to_stdout = true;
-            ceres::Solver::Summary summary;
-            ceres::Solve(options, &problem, &summary);
-            std::cout << summary.FullReport() << '\n';
-            /// Printing and Storing C_T_L in a file
-            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
-            Eigen::MatrixXd C_T_L(3, 4);
-            C_T_L.block(0, 0, 3, 3) = Rotn;
-            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-            std::cout << C_T_L << std::endl;
-            std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
-            std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
-
-            std::ofstream results;
-            results.open(result_str);
-            results << C_T_L;
-            results.close();
-
-            ros::shutdown();
-        } else if(usePlane && useLines &&
-                  no_of_plane_views >= max_no_of_plane_views &&
-                  no_of_line_views >= max_no_of_line_views) {
-            /// Step 4: Solve it
-            ceres::Solver::Options options;
-            options.max_num_iterations = 200;
-            options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-            options.minimizer_progress_to_stdout = true;
-            ceres::Solver::Summary summary;
-            ceres::Solve(options, &problem, &summary);
-            std::cout << summary.FullReport() << '\n';
-            /// Printing and Storing C_T_L in a file
-            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
-            Eigen::MatrixXd C_T_L(3, 4);
-            C_T_L.block(0, 0, 3, 3) = Rotn;
-            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-            std::cout << C_T_L << std::endl;
-            std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
-            std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
-
-            std::ofstream results;
-            results.open(result_str);
-            results << C_T_L;
-            results.close();
-
-            ros::shutdown();
+        if(lineOnlyCond || planeOnlyCond || bothLineAndPlane) {
+            solveOptimizationProb();
         } else {
             ROS_INFO_STREAM("No of line views: " << no_of_line_views);
             ROS_INFO_STREAM("No of plane views: " << no_of_plane_views);
         }
+    }
+    void solveOptimizationProb() {
+        /// Step 4: Solve it
+        ceres::Solver::Options options;
+        options.max_num_iterations = 200;
+        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options.minimizer_progress_to_stdout = true;
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem, &summary);
+        std::cout << summary.FullReport() << '\n';
+        /// Printing and Storing C_T_L in a file
+        ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+        Eigen::MatrixXd C_T_L(3, 4);
+        C_T_L.block(0, 0, 3, 3) = Rotn;
+        C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+        std::cout << C_T_L << std::endl;
+        std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
+        std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+        std::ofstream results;
+        results.open(result_str);
+        results << C_T_L;
+        results.close();
+        ros::shutdown();
     }
 };
 
