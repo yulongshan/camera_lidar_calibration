@@ -184,7 +184,7 @@ public:
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
                        const normal_msg::normalConstPtr &norm_msg,
                        const normal_msg::normalConstPtr &tvec_msg) {
-        if(usePlane) {
+        if(usePlane && no_of_plane_views < max_no_of_plane_views) {
             pcl::PointCloud<pcl::PointXYZ> plane_pcl;
             pcl::fromROSMsg(*plane_msg, plane_pcl);
 
@@ -192,7 +192,7 @@ public:
             Eigen::Vector3d c_t_w(tvec_msg->a, tvec_msg->b, tvec_msg->c);
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
             ceres::LossFunction *loss_function = NULL;
-            if(r3.dot(Nc_old) < 0.9) {
+            if(r3.dot(Nc_old) < 0.95) {
                 for(int i = 0; i < plane_pcl.points.size(); i++) {
                     Eigen::Vector3d lidar_point(plane_pcl.points[i].x,
                                                 plane_pcl.points[i].y,
@@ -203,7 +203,7 @@ public:
                             (new CalibrationErrorTermPlane(lidar_point, Nc));
                     problem.AddResidualBlock(cost_function, loss_function, R_t.data());
                 }
-                ROS_WARN_STREAM("No of plane views: " << ++no_of_plane_views);
+                ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
         }
@@ -218,7 +218,7 @@ public:
                   const normal_msg::normalConstPtr &norm2_msg,
                   const normal_msg::normalConstPtr &norm3_msg,
                   const normal_msg::normalConstPtr &norm4_msg) {
-        if(useLines) {
+        if(useLines && no_of_line_views < max_no_of_line_views) {
             pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
             pcl::fromROSMsg(*line1_msg, line_1_pcl);
             pcl::PointCloud<pcl::PointXYZ> line_2_pcl;
@@ -290,7 +290,7 @@ public:
     }
 
     void checkStatus() {
-        if(!usePlane && useLines && no_of_line_views > max_no_of_line_views) {
+        if(!usePlane && useLines && no_of_line_views >= max_no_of_line_views) {
             /// Step 4: Solve it
             ceres::Solver::Options options;
             options.max_num_iterations = 200;
@@ -314,7 +314,7 @@ public:
             results.close();
 
             ros::shutdown();
-        } else if(usePlane && !useLines && no_of_plane_views > max_no_of_plane_views) {
+        } else if(usePlane && !useLines && no_of_plane_views >= max_no_of_plane_views) {
             /// Step 4: Solve it
             ceres::Solver::Options options;
             options.max_num_iterations = 200;
@@ -338,7 +338,9 @@ public:
             results.close();
 
             ros::shutdown();
-        } else if(usePlane && useLines && no_of_line_views > max_no_of_line_views) {
+        } else if(usePlane && useLines &&
+                  no_of_plane_views >= max_no_of_plane_views &&
+                  no_of_line_views >= max_no_of_line_views) {
             /// Step 4: Solve it
             ceres::Solver::Options options;
             options.max_num_iterations = 200;
@@ -363,7 +365,8 @@ public:
 
             ros::shutdown();
         } else {
-            ROS_INFO_STREAM("No solving condition was met");
+            ROS_INFO_STREAM("No of line views: " << no_of_line_views);
+            ROS_INFO_STREAM("No of plane views: " << no_of_plane_views);
         }
     }
 };
