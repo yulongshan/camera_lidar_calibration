@@ -12,7 +12,7 @@
 #include <opencv2/calib3d.hpp>
 
 #include "normal_msg/normal.h"
-
+#include "line_msg/line.h"
 
 //#define FX 6.4372590342756985e+02
 //#define FY 6.4372590342756985e+02
@@ -38,6 +38,10 @@ ros::Publisher normal_pub_rb;
 ros::Publisher normal_pub_lb;
 ros::Publisher normal_pub_chkrbrd;
 ros::Publisher tvec_pub_chkrbrd;
+ros::Publisher line_pub_lt;
+ros::Publisher line_pub_rt;
+ros::Publisher line_pub_rb;
+ros::Publisher line_pub_lb;
 
 std_msgs::Header global_header;
 
@@ -201,10 +205,10 @@ void drawLineSegments(cv::Mat image_in) {
     ROS_ASSERT(lls.size() == 4);
     std::vector<double> slopes_ordered(4);
     std::vector<cv::Vec4f> lines_ordered(4);
-    normal_msg::normal n_lt;
-    normal_msg::normal n_rt;
-    normal_msg::normal n_rb;
-    normal_msg::normal n_lb;
+    normal_msg::normal n_lt; line_msg::line l_lt;
+    normal_msg::normal n_rt; line_msg::line l_rt;
+    normal_msg::normal n_rb; line_msg::line l_rb;
+    normal_msg::normal n_lb; line_msg::line l_lb;
     for(size_t i = 0; i < 4; i++) {
         char labelX = lls[i].labelX;
         char labelY = lls[i].labelY;
@@ -219,6 +223,13 @@ void drawLineSegments(cv::Mat image_in) {
             n_lt.b = normal_eqn(1);
             n_lt.c = normal_eqn(2);
             normal_pub_lt.publish(n_lt);
+
+            l_lt.header.stamp = global_header.stamp;
+            l_lt.a1 = lls[i].line(0);
+            l_lt.b1 = lls[i].line(1);
+            l_lt.a2 = lls[i].line(2);
+            l_lt.b2 = lls[i].line(3);
+            line_pub_lt.publish(l_lt);
         }
 
         if(labelX == 'r' && labelY == 't') {
@@ -232,6 +243,13 @@ void drawLineSegments(cv::Mat image_in) {
             n_rt.b = normal_eqn(1);
             n_rt.c = normal_eqn(2);
             normal_pub_rt.publish(n_rt);
+
+            l_rt.header.stamp = global_header.stamp;
+            l_rt.a1 = lls[i].line(0);
+            l_rt.b1 = lls[i].line(1);
+            l_rt.a2 = lls[i].line(2);
+            l_rt.b2 = lls[i].line(3);
+            line_pub_rt.publish(l_rt);
         }
 
         if(labelX == 'r' && labelY == 'b') {
@@ -245,6 +263,13 @@ void drawLineSegments(cv::Mat image_in) {
             n_rb.b = normal_eqn(1);
             n_rb.c = normal_eqn(2);
             normal_pub_rb.publish(n_rb);
+
+            l_rb.header.stamp = global_header.stamp;
+            l_rb.a1 = lls[i].line(0);
+            l_rb.b1 = lls[i].line(1);
+            l_rb.a2 = lls[i].line(2);
+            l_rb.b2 = lls[i].line(3);
+            line_pub_rb.publish(l_rb);
         }
 
         if(labelX == 'l' && labelY == 'b') {
@@ -258,6 +283,13 @@ void drawLineSegments(cv::Mat image_in) {
             n_lb.b = normal_eqn(1);
             n_lb.c = normal_eqn(2);
             normal_pub_lb.publish(n_lb);
+
+            l_lb.header.stamp = global_header.stamp;
+            l_lb.a1 = lls[i].line(0);
+            l_lb.b1 = lls[i].line(1);
+            l_lb.a2 = lls[i].line(2);
+            l_lb.b2 = lls[i].line(3);
+            line_pub_lb.publish(l_lb);
         }
     }
     double angle1 =
@@ -480,6 +512,10 @@ int main(int argc, char **argv) {
     normal_pub_rt = nh.advertise<normal_msg::normal>("/normal2", 1);
     normal_pub_rb = nh.advertise<normal_msg::normal>("/normal3", 1);
     normal_pub_lb = nh.advertise<normal_msg::normal>("/normal4", 1);
+    line_pub_lt = nh.advertise<line_msg::line>("/line_image1", 1);
+    line_pub_rt = nh.advertise<line_msg::line>("/line_image2", 1);
+    line_pub_rb = nh.advertise<line_msg::line>("/line_image3", 1);
+    line_pub_lb = nh.advertise<line_msg::line>("/line_image4", 1);
     normal_pub_chkrbrd = nh.advertise<normal_msg::normal>("/normal_plane", 1);
     tvec_pub_chkrbrd = nh.advertise<normal_msg::normal>("/tvec_plane", 1);
     ros::spin();

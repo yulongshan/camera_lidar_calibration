@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   normal_msg
+  line_msg
 )
 
 ## System dependencies are found with CMake's conventions
@@ -22,7 +23,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 find_package( OpenCV REQUIRED )
 catkin_package(
 INCLUDE_DIRS
-CATKIN_DEPENDS normal_msg
+CATKIN_DEPENDS normal_msg line_msg
 )
 
 include_directories(
@@ -156,7 +157,7 @@ add_executable(${PROJECT_NAME}_node src/image_line_detection_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS} normal_msg_gencpp)
+add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS} normal_msg line_msg gencpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node

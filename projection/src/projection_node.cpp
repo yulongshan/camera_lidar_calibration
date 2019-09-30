@@ -70,11 +70,9 @@ public:
         sync->registerCallback(boost::bind(&projectionLidarLines::callback,
                                            this, _1, _2));
 
-        result_str =
-                "/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt";
+        result_str = readParam<std::string>(nh, "result_str");
+        cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
 
-        cam_config_file_path =
-                "/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml";
         cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
         ROS_ASSERT(fs_cam_config.isOpened());
         K = cv::Mat::zeros(3, 3, CV_64F);
@@ -115,6 +113,21 @@ public:
         cv::eigen2cv(C_R_L, c_R_l);
         cv::Rodrigues(c_R_l, rvec);
         cv::eigen2cv(C_t_L, tvec);
+    }
+
+    template <typename T>
+    T readParam(ros::NodeHandle &n, std::string name){
+        T ans;
+        if (n.getParam(name, ans))
+        {
+            ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+        }
+        else
+        {
+            ROS_ERROR_STREAM("Failed to load " << name);
+            n.shutdown();
+        }
+        return ans;
     }
 
     void callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg,

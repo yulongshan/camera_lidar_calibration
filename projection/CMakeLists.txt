@@ -8,10 +8,15 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  line_msg
 )
 
 find_package( PCL REQUIRED)
-find_package( OpenCV REQUIRED)
+find_package( OpenCV REQUIRED )
+catkin_package(
+  INCLUDE_DIRS
+  CATKIN_DEPENDS line_msg
+)
 
 catkin_package(
   INCLUDE_DIRS
@@ -26,8 +31,13 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_node src/projection_node.cpp)
-
 target_link_libraries(${PROJECT_NAME}_node
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBS}
+)
+
+add_executable(line_projection_node src/line_projection_node.cpp)
+target_link_libraries(line_projection_node
    ${catkin_LIBRARIES}
    ${OpenCV_LIBS}
 )

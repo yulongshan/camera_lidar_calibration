@@ -8,7 +8,7 @@
   <param name ="cam_config_file_path"
          value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
 
-  <node  pkg="projection" name="projection_node" type="projection_node" output="screen">
+  <node  pkg="projection" name="line_projection_node" type="line_projection_node" output="screen">
 	  <remap from="/image_in" to="/nerian_stereo/left_image"/>
       <remap from="/cloud_in" to="/velodyne_points"/>
   </node>
