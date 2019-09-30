@@ -67,6 +67,7 @@ private:
 
     bool useLines;
     bool usePlane;
+    bool initializeR;
 
     Eigen::Vector3d Nc_old;
     ceres::Problem problem;
@@ -120,15 +121,16 @@ public:
         sync2->registerCallback(boost::bind(&calib::callbackPlane, this, _1, _2, _3));
 
         Rotn = Eigen::Matrix3d::Zero();
-        Rotn(0, 0) = 0;
-        Rotn(0, 1) = -1;
-        Rotn(0, 2) = 0;
-        Rotn(1, 0) = 0;
-        Rotn(1, 1) = 0;
-        Rotn(1, 2) = -1;
-        Rotn(2, 0) = 1;
-        Rotn(2, 1) = 0;
-        Rotn(2, 2) = 0;
+        initializeR = readParam<bool>(nh, "initializeR");
+        if(initializeR) {
+            Rotn(0, 0) = 0; Rotn(0, 1) = -1; Rotn(0, 2) = 0;
+            Rotn(1, 0) = 0; Rotn(1, 1) = 0; Rotn(1, 2) = -1;
+            Rotn(2, 0) = 1; Rotn(2, 1) = 0; Rotn(2, 2) = 0;
+        } else {
+            Rotn(0, 0) = 1; Rotn(0, 1) = 0; Rotn(0, 2) = 0;
+            Rotn(1, 0) = 0; Rotn(1, 1) = 1; Rotn(1, 2) = 0;
+            Rotn(2, 0) = 0; Rotn(2, 1) = 0; Rotn(2, 2) = 1;
+        }
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
         translation = Eigen::Vector3d(0,0, 0);
         R_t = Eigen::VectorXd(6);
