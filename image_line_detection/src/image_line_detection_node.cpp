@@ -14,10 +14,15 @@
 #include "normal_msg/normal.h"
 
 
-#define FX 6.4372590342756985e+02
-#define FY 6.4372590342756985e+02
-#define CX 3.9534097290039062e+02
-#define CY 3.0199901199340820e+02
+//#define FX 6.4372590342756985e+02
+//#define FY 6.4372590342756985e+02
+//#define CX 3.9534097290039062e+02
+//#define CY 3.0199901199340820e+02
+//
+double fx, fy, cx, cy;
+double k1, k2, p1, p2;
+int image_width, image_height;
+std::string cam_config_file_path;
 
 struct labelledLine {
     cv::Vec4f line;
@@ -36,14 +41,47 @@ ros::Publisher tvec_pub_chkrbrd;
 
 std_msgs::Header global_header;
 
+template <typename T>
+T readParam(ros::NodeHandle &n, std::string name)
+{
+    T ans;
+    if (n.getParam(name, ans))
+    {
+        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to load " << name);
+        n.shutdown();
+    }
+    return ans;
+}
+
+void readCameraParams() {
+    cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
+    ROS_ASSERT(fs_cam_config.isOpened());
+    fs_cam_config["image_height"] >> image_height;
+    fs_cam_config["image_width"] >> image_width;
+    fs_cam_config["k1"] >> k1;
+    fs_cam_config["k2"] >> k2;
+    fs_cam_config["p1"] >> p1;
+    fs_cam_config["p2"] >> p2;
+    fs_cam_config["fx"] >> fx;
+    fs_cam_config["fy"] >> fy;
+    fs_cam_config["cx"] >> cx;
+    fs_cam_config["cy"] >> cy;
+}
+
+
 cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
     cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
     cv::Mat line_vec = cv::Mat::zeros(3, 1, CV_64FC1);
-    K.at<double>(0, 0) = FX;
-    K.at<double>(1, 1) = FY;
-    K.at<double>(0, 2) = CX;
-    K.at<double>(1, 2) = CY;
+    K.at<double>(0, 0) = fx;
+    K.at<double>(1, 1) = fy;
+    K.at<double>(0, 2) = cx;
+    K.at<double>(1, 2) = cy;
     K.at<double>(2, 2) = 1.0;
+//    std::cout << K << std::endl;
     line_vec.at<double>(0) = line(0);
     line_vec.at<double>(1) = line(1);
     line_vec.at<double>(2) = line(2);
@@ -124,10 +162,10 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     objectPoints.push_back(cv::Point3f(side_len, 0, 0));
 
     cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
-    K.at<double>(0, 0) = FX;
-    K.at<double>(1, 1) = FY;
-    K.at<double>(0, 2) = CX;
-    K.at<double>(1, 2) = CY;
+    K.at<double>(0, 0) = fx;
+    K.at<double>(1, 1) = fy;
+    K.at<double>(0, 2) = cx;
+    K.at<double>(1, 2) = cy;
     K.at<double>(2, 2) = 1.0;
 
     cv::Mat D = cv::Mat::zeros(4, 1, CV_64FC1);
@@ -329,8 +367,6 @@ double getSlope(cv::Vec4f line) {
     return m;
 }
 
-
-
 void chooseBestLines(std::vector<cv::Vec4f> lines) {
     lls.clear();
     std::vector<cv::Vec4f> best_lines;
@@ -435,6 +471,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 int main(int argc, char **argv) {
     ros::init(argc, argv, "image_line_detector");
     ros::NodeHandle nh;
+    cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
+    readCameraParams();
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber sub = it.subscribe("/camera/image", 1, imageCallback);
