@@ -79,9 +79,14 @@ private:
     bool useLines;
     bool usePlane;
     bool initializeR;
+    bool jointSol;
+    bool planeFirst;
 
     Eigen::Vector3d Nc_old;
     ceres::Problem problem;
+    ceres::Problem problem_plane;
+    ceres::Problem problem_line;
+
 public:
     calib() {
         line1_sub = new
@@ -176,11 +181,13 @@ public:
         }
 
         Nc_old = Eigen::Vector3d(0, 0, 0);
+
+        jointSol = readParam<bool>(nh, "jointSol");
+        planeFirst = readParam<bool>(nh, "planeFirst");
     }
 
     template <typename T>
-    T readParam(ros::NodeHandle &n, std::string name)
-    {
+    T readParam(ros::NodeHandle &n, std::string name){
         T ans;
         if (n.getParam(name, ans))
         {
@@ -192,6 +199,162 @@ public:
             n.shutdown();
         }
         return ans;
+    }
+
+    void addPlaneResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
+                               Eigen::Vector3d normal) {
+        ceres::LossFunction *loss_function = NULL;
+        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+        for(int j = 0; j < lidar_pts.points.size(); j++){
+            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                     lidar_pts.points[j].y,
+                                     lidar_pts.points[j].z);
+            // Add residual here
+            ceres::CostFunction *cost_function = new
+                    ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
+                    (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
+            problem_plane.AddResidualBlock(cost_function, loss_function, R_t.data());
+        }
+    }
+
+    void addLineResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
+                              Eigen::Vector3d normal) {
+        ceres::LossFunction *loss_function = NULL;
+        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+        for(int j = 0; j < lidar_pts.points.size(); j++){
+            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                     lidar_pts.points[j].y,
+                                     lidar_pts.points[j].z);
+            // Add residual here
+            ceres::CostFunction *cost_function = new
+                    ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                    (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+            problem_line.AddResidualBlock(cost_function, loss_function, R_t.data());
+        }
+    }
+
+    void addPlaneResidualJoint(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
+                               Eigen::Vector3d normal) {
+        ceres::LossFunction *loss_function = NULL;
+        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+        for(int j = 0; j < lidar_pts.points.size(); j++){
+            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                     lidar_pts.points[j].y,
+                                     lidar_pts.points[j].z);
+            // Add residual here
+            ceres::CostFunction *cost_function = new
+                    ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
+                    (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
+            problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+        }
+    }
+
+    void addLineResidualJoint(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
+                              Eigen::Vector3d normal) {
+        ceres::LossFunction *loss_function = NULL;
+        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+        for(int j = 0; j < lidar_pts.points.size(); j++){
+            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                     lidar_pts.points[j].y,
+                                     lidar_pts.points[j].z);
+            // Add residual here
+            ceres::CostFunction *cost_function = new
+                    ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                    (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+            problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+        }
+    }
+
+    void solvePlaneOptimization() {
+        for(int i = 0; i < plane_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[i].lidar_pts;
+            Eigen::Vector3d normal = plane_data[i].normal;
+            addPlaneResidual(lidar_pts, normal);
+        }
+        ceres::Solver::Options options;
+        options.max_num_iterations = 200;
+        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options.minimizer_progress_to_stdout = true;
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem_plane, &summary);
+        std::cout << summary.FullReport() << '\n';
+    }
+
+    void solveLineOptimization() {
+        for(int i = 0; i < line1_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line1_data[i].lidar_pts;
+            Eigen::Vector3d normal = line1_data[i].normal;
+            addLineResidual(lidar_pts, normal);
+        }
+        for(int i = 0; i < line2_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line2_data[i].lidar_pts;
+            Eigen::Vector3d normal = line2_data[i].normal;
+            addLineResidual(lidar_pts, normal);
+        }
+        for(int i = 0; i < line3_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line3_data[i].lidar_pts;
+            Eigen::Vector3d normal = line3_data[i].normal;
+            addLineResidual(lidar_pts, normal);
+        }
+        for(int i = 0; i < line4_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line4_data[i].lidar_pts;
+            Eigen::Vector3d normal = line4_data[i].normal;
+            addLineResidual(lidar_pts, normal);
+        }
+        ceres::Solver::Options options;
+        options.max_num_iterations = 200;
+        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options.minimizer_progress_to_stdout = true;
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem_line, &summary);
+        std::cout << summary.FullReport() << '\n';
+    }
+
+    void solveJointOptimizationProb() {
+
+        // Add planar residuals
+        if(plane_data.size() > 0) {
+            for(int i = 0; i < plane_data.size(); i++) {
+                pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[i].lidar_pts;
+                Eigen::Vector3d normal = plane_data[i].normal;
+                addPlaneResidualJoint(lidar_pts, normal);
+            }
+        }
+
+        if(line1_data.size() > 0 &&
+           line2_data.size() > 0 &&
+           line3_data.size() > 0 &&
+           line4_data.size() > 0) {
+            for(int i = 0; i < line1_data.size(); i++) {
+                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line1_data[i].lidar_pts;
+                Eigen::Vector3d normal = line1_data[i].normal;
+                addLineResidualJoint(lidar_pts, normal);
+            }
+            for(int i = 0; i < line2_data.size(); i++) {
+                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line2_data[i].lidar_pts;
+                Eigen::Vector3d normal = line2_data[i].normal;
+                addLineResidualJoint(lidar_pts, normal);
+            }
+            for(int i = 0; i < line3_data.size(); i++) {
+                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line3_data[i].lidar_pts;
+                Eigen::Vector3d normal = line3_data[i].normal;
+                addLineResidualJoint(lidar_pts, normal);
+            }
+            for(int i = 0; i < line4_data.size(); i++) {
+                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line4_data[i].lidar_pts;
+                Eigen::Vector3d normal = line4_data[i].normal;
+                addLineResidualJoint(lidar_pts, normal);
+            }
+        }
+
+        /// Step 4: Solve it
+        ceres::Solver::Options options;
+        options.max_num_iterations = 200;
+        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options.minimizer_progress_to_stdout = true;
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem, &summary);
+        std::cout << summary.FullReport() << '\n';
     }
 
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
@@ -220,13 +383,13 @@ public:
     }
 
     void callbackLines(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
-                  const sensor_msgs::PointCloud2ConstPtr &line2_msg,
-                  const sensor_msgs::PointCloud2ConstPtr &line3_msg,
-                  const sensor_msgs::PointCloud2ConstPtr &line4_msg,
-                  const normal_msg::normalConstPtr &norm1_msg,
-                  const normal_msg::normalConstPtr &norm2_msg,
-                  const normal_msg::normalConstPtr &norm3_msg,
-                  const normal_msg::normalConstPtr &norm4_msg) {
+                       const sensor_msgs::PointCloud2ConstPtr &line2_msg,
+                       const sensor_msgs::PointCloud2ConstPtr &line3_msg,
+                       const sensor_msgs::PointCloud2ConstPtr &line4_msg,
+                       const normal_msg::normalConstPtr &norm1_msg,
+                       const normal_msg::normalConstPtr &norm2_msg,
+                       const normal_msg::normalConstPtr &norm3_msg,
+                       const normal_msg::normalConstPtr &norm4_msg) {
         if(useLines && no_of_line_views < max_no_of_line_views) {
             pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
             pcl::fromROSMsg(*line1_msg, line_1_pcl);
@@ -285,102 +448,35 @@ public:
                                 no_of_line_views >= max_no_of_line_views;
 
         if(lineOnlyCond || planeOnlyCond || bothLineAndPlane) {
-            solveOptimizationProb();
+            if(jointSol) {
+                solveJointOptimizationProb();
+
+            } else {
+                if(planeFirst) {
+                    solvePlaneOptimization();
+                    solveLineOptimization();
+                } else {
+                    solveLineOptimization();
+                    solvePlaneOptimization();
+                }
+            }
+            /// Printing and Storing C_T_L in a file
+            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+            Eigen::MatrixXd C_T_L(3, 4);
+            C_T_L.block(0, 0, 3, 3) = Rotn;
+            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+            std::cout << C_T_L << std::endl;
+            std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
+            std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+            std::ofstream results;
+            results.open(result_str);
+            results << C_T_L;
+            results.close();
+            ros::shutdown();
         } else {
             ROS_INFO_STREAM("No of line views: " << no_of_line_views);
             ROS_INFO_STREAM("No of plane views: " << no_of_plane_views);
         }
-    }
-
-    void addPlaneResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
-                     Eigen::Vector3d normal) {
-        ceres::LossFunction *loss_function = NULL;
-        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
-        for(int j = 0; j < lidar_pts.points.size(); j++){
-            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                     lidar_pts.points[j].y,
-                                     lidar_pts.points[j].z);
-            // Add residual here
-            ceres::CostFunction *cost_function = new
-                    ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-                    (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
-            problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-        }
-    }
-
-    void addLineResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
-                          Eigen::Vector3d normal) {
-        ceres::LossFunction *loss_function = NULL;
-        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
-        for(int j = 0; j < lidar_pts.points.size(); j++){
-            Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                     lidar_pts.points[j].y,
-                                     lidar_pts.points[j].z);
-            // Add residual here
-            ceres::CostFunction *cost_function = new
-                    ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-                    (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
-            problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-        }
-    }
-
-    void solveOptimizationProb() {
-
-        // Add planar residuals
-        if(plane_data.size() > 0) {
-            for(int i = 0; i < plane_data.size(); i++) {
-                pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[i].lidar_pts;
-                Eigen::Vector3d normal = plane_data[i].normal;
-                addPlaneResidual(lidar_pts, normal);
-            }
-        }
-
-        if(line1_data.size() > 0 &&
-           line2_data.size() > 0 &&
-           line3_data.size() > 0 &&
-           line4_data.size() > 0) {
-            for(int i = 0; i < line1_data.size(); i++) {
-                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line1_data[i].lidar_pts;
-                Eigen::Vector3d normal = line1_data[i].normal;
-                addLineResidual(lidar_pts, normal);
-            }
-            for(int i = 0; i < line2_data.size(); i++) {
-                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line2_data[i].lidar_pts;
-                Eigen::Vector3d normal = line2_data[i].normal;
-                addLineResidual(lidar_pts, normal);
-            }
-            for(int i = 0; i < line3_data.size(); i++) {
-                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line3_data[i].lidar_pts;
-                Eigen::Vector3d normal = line3_data[i].normal;
-                addLineResidual(lidar_pts, normal);
-            }
-            for(int i = 0; i < line4_data.size(); i++) {
-                pcl::PointCloud<pcl::PointXYZ> lidar_pts = line4_data[i].lidar_pts;
-                Eigen::Vector3d normal = line4_data[i].normal;
-                addLineResidual(lidar_pts, normal);
-            }
-        }
-        /// Step 4: Solve it
-        ceres::Solver::Options options;
-        options.max_num_iterations = 200;
-        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-        options.minimizer_progress_to_stdout = true;
-        ceres::Solver::Summary summary;
-        ceres::Solve(options, &problem, &summary);
-        std::cout << summary.FullReport() << '\n';
-        /// Printing and Storing C_T_L in a file
-        ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
-        Eigen::MatrixXd C_T_L(3, 4);
-        C_T_L.block(0, 0, 3, 3) = Rotn;
-        C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-        std::cout << C_T_L << std::endl;
-        std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
-        std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
-        std::ofstream results;
-        results.open(result_str);
-        results << C_T_L;
-        results.close();
-        ros::shutdown();
     }
 };
 
