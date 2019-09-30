@@ -205,7 +205,6 @@ public:
             Eigen::Vector3d c_t_w(tvec_msg->a, tvec_msg->b, tvec_msg->c);
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
 
-//            ceres::LossFunction *loss_function = NULL;
             if(r3.dot(Nc_old) < 0.95) {
 
                 dataFrame plane_datum;
@@ -213,17 +212,6 @@ public:
                 plane_datum.normal = Nc;
                 plane_data.push_back(plane_datum);
 
-//                double p_i_sqrt = 1/sqrt((double)plane_pcl.points.size());
-//                for(int i = 0; i < plane_pcl.points.size(); i++) {
-//                    Eigen::Vector3d lidar_point(plane_pcl.points[i].x,
-//                                                plane_pcl.points[i].y,
-//                                                plane_pcl.points[i].z);
-//                    // Add residual here
-//                    ceres::CostFunction *cost_function = new
-//                            ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-//                            (new CalibrationErrorTermPlane(lidar_point, Nc, p_i_sqrt));
-//                    problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-//                }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
@@ -284,55 +272,6 @@ public:
             line4_datum.normal = normal4;
             line4_data.push_back(line4_datum);
 
-//            double p_i_sqrt_1 = 1/sqrt((double)line_1_pcl.points.size());
-//            for(int i = 0; i < line_1_pcl.points.size(); i++) {
-//                Eigen::Vector3d lidar_point(line_1_pcl.points[i].x,
-//                                            line_1_pcl.points[i].y,
-//                                            line_1_pcl.points[i].z);
-//                // Add residual here
-//                ceres::CostFunction *cost_function = new
-//                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-//                        (new CalibrationErrorTermLine(lidar_point, normal1, p_i_sqrt_1));
-//                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-//            }
-//
-//            double p_i_sqrt_2 = 1/sqrt((double)line_2_pcl.points.size());
-//            for(int i = 0; i < line_2_pcl.points.size(); i++) {
-//                Eigen::Vector3d lidar_point(line_2_pcl.points[i].x,
-//                                            line_2_pcl.points[i].y,
-//                                            line_2_pcl.points[i].z);
-//                // Add residual here
-//                ceres::CostFunction *cost_function = new
-//                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-//                        (new CalibrationErrorTermLine(lidar_point, normal2, p_i_sqrt_2));
-//                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-//            }
-//
-//
-//            double p_i_sqrt_3 = 1/sqrt((double)line_3_pcl.points.size());
-//            for(int i = 0; i < line_3_pcl.points.size(); i++) {
-//                Eigen::Vector3d lidar_point(line_3_pcl.points[i].x,
-//                                            line_3_pcl.points[i].y,
-//                                            line_3_pcl.points[i].z);
-//                // Add residual here
-//                ceres::CostFunction *cost_function = new
-//                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-//                        (new CalibrationErrorTermLine(lidar_point, normal3, p_i_sqrt_3));
-//                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-//            }
-//
-//
-//            double p_i_sqrt_4 = 1/sqrt((double)line_4_pcl.points.size());
-//            for(int i = 0; i < line_4_pcl.points.size(); i++) {
-//                Eigen::Vector3d lidar_point(line_4_pcl.points[i].x,
-//                                            line_4_pcl.points[i].y,
-//                                            line_4_pcl.points[i].z);
-//                // Add residual here
-//                ceres::CostFunction *cost_function = new
-//                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
-//                        (new CalibrationErrorTermLine(lidar_point, normal4, p_i_sqrt_4));
-//                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
-//            }
             ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
         }
         checkStatus();
