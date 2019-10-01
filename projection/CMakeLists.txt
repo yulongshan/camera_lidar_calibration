@@ -14,8 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package( PCL REQUIRED)
 find_package( OpenCV REQUIRED )
 catkin_package(
-  INCLUDE_DIRS
-  CATKIN_DEPENDS line_msg
+ INCLUDE_DIRS
+CATKIN_DEPENDS line_msg
 )
 
 catkin_package(
@@ -37,6 +37,7 @@ target_link_libraries(${PROJECT_NAME}_node
 )
 
 add_executable(line_projection_node src/line_projection_node.cpp)
+add_dependencies(line_projection_node ${catkin_EXPORTED_TARGETS} line_msg gencpp)
 target_link_libraries(line_projection_node
    ${catkin_LIBRARIES}
    ${OpenCV_LIBS}

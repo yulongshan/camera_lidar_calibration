@@ -128,25 +128,45 @@ public:
             char labelZ = lls[i].labelZ;
             char labelY = lls[i].labelY;
             if(labelZ == 'b' && labelY == 'l') {
-                pcl::toROSMsg(lls[i].line_pts, line1_ros);
-                line_1_pub.publish(line1_ros);
+                pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
+                pcl::toROSMsg(filtered_cld, line1_ros);
+                if(filtered_cld.points.size() > 0)
+                    line_1_pub.publish(line1_ros);
             }
 
             if(labelZ == 'b' && labelY == 'r') {
-                pcl::toROSMsg(lls[i].line_pts, line2_ros);
-                line_2_pub.publish(line2_ros);
+                pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
+                pcl::toROSMsg(filtered_cld, line2_ros);
+                if(filtered_cld.points.size() > 0)
+                    line_2_pub.publish(line2_ros);
             }
 
             if(labelZ == 't' && labelY == 'r') {
-                pcl::toROSMsg(lls[i].line_pts, line3_ros);
-                line_3_pub.publish(line3_ros);
+                pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
+                pcl::toROSMsg(filtered_cld, line3_ros);
+                if(filtered_cld.points.size() > 0)
+                    line_3_pub.publish(line3_ros);
             }
 
             if(labelZ == 't' && labelY == 'l') {
-                pcl::toROSMsg(lls[i].line_pts, line4_ros);
-                line_4_pub.publish(line4_ros);
+                pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
+                pcl::toROSMsg(filtered_cld, line4_ros);
+                if(filtered_cld.points.size() > 0)
+                    line_4_pub.publish(line4_ros);
             }
         }
+    }
+
+    pcl::PointCloud<pcl::PointXYZI> applyRadiusFilter(pcl::PointCloud<pcl::PointXYZI> cloud_in) {
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_in_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZI>);
+        *cloud_in_ptr = cloud_in;
+        pcl::RadiusOutlierRemoval<pcl::PointXYZI> outrem;
+        outrem.setInputCloud(cloud_in_ptr);
+        outrem.setRadiusSearch(0.1);
+        outrem.setMinNeighborsInRadius (3);
+        outrem.filter (*cloud_filtered);
+        return *cloud_filtered;
     }
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
@@ -226,7 +246,6 @@ public:
         pcl::toROSMsg(temp_plane, cloud_out_ros);
 
         cloud_pub.publish(cloud_out_ros);
-
     }
 };
 

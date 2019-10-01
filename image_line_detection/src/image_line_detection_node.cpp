@@ -215,81 +215,77 @@ void drawLineSegments(cv::Mat image_in) {
         if(labelX == 'l' && labelY == 't') {
             slopes_ordered[0] = lls[i].slope;
             lines_ordered[0] = lls[i].line;
-            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
-            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-//            ROS_INFO_STREAM("Normal Equation lt: " << normal_eqn);
-            n_lt.header.stamp = global_header.stamp;
-            n_lt.a = normal_eqn(0);
-            n_lt.b = normal_eqn(1);
-            n_lt.c = normal_eqn(2);
-            normal_pub_lt.publish(n_lt);
-
-            l_lt.header.stamp = global_header.stamp;
-            l_lt.a1 = lls[i].line(0);
-            l_lt.b1 = lls[i].line(1);
-            l_lt.a2 = lls[i].line(2);
-            l_lt.b2 = lls[i].line(3);
-            line_pub_lt.publish(l_lt);
+//            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
+//            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+//            n_lt.header.stamp = global_header.stamp;
+//            n_lt.a = normal_eqn(0);
+//            n_lt.b = normal_eqn(1);
+//            n_lt.c = normal_eqn(2);
+//            normal_pub_lt.publish(n_lt);
+//
+//            l_lt.header.stamp = global_header.stamp;
+//            l_lt.a1 = lls[i].line(0);
+//            l_lt.b1 = lls[i].line(1);
+//            l_lt.a2 = lls[i].line(2);
+//            l_lt.b2 = lls[i].line(3);
+//            line_pub_lt.publish(l_lt);
         }
 
         if(labelX == 'r' && labelY == 't') {
             slopes_ordered[1] = lls[i].slope;
             lines_ordered[1] = lls[i].line;
-            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
-            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-//            ROS_INFO_STREAM("Normal Equation rt: " << normal_eqn);
-            n_rt.header.stamp = global_header.stamp;
-            n_rt.a = normal_eqn(0);
-            n_rt.b = normal_eqn(1);
-            n_rt.c = normal_eqn(2);
-            normal_pub_rt.publish(n_rt);
-
-            l_rt.header.stamp = global_header.stamp;
-            l_rt.a1 = lls[i].line(0);
-            l_rt.b1 = lls[i].line(1);
-            l_rt.a2 = lls[i].line(2);
-            l_rt.b2 = lls[i].line(3);
-            line_pub_rt.publish(l_rt);
+//            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
+//            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+//            n_rt.header.stamp = global_header.stamp;
+//            n_rt.a = normal_eqn(0);
+//            n_rt.b = normal_eqn(1);
+//            n_rt.c = normal_eqn(2);
+//            normal_pub_rt.publish(n_rt);
+//
+//            l_rt.header.stamp = global_header.stamp;
+//            l_rt.a1 = lls[i].line(0);
+//            l_rt.b1 = lls[i].line(1);
+//            l_rt.a2 = lls[i].line(2);
+//            l_rt.b2 = lls[i].line(3);
+//            line_pub_rt.publish(l_rt);
         }
 
         if(labelX == 'r' && labelY == 'b') {
             slopes_ordered[2] = lls[i].slope;
             lines_ordered[2] = lls[i].line;
-            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
-            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-//            ROS_INFO_STREAM("Normal Equation rb: " << normal_eqn);
-            n_rb.header.stamp = global_header.stamp;
-            n_rb.a = normal_eqn(0);
-            n_rb.b = normal_eqn(1);
-            n_rb.c = normal_eqn(2);
-            normal_pub_rb.publish(n_rb);
-
-            l_rb.header.stamp = global_header.stamp;
-            l_rb.a1 = lls[i].line(0);
-            l_rb.b1 = lls[i].line(1);
-            l_rb.a2 = lls[i].line(2);
-            l_rb.b2 = lls[i].line(3);
-            line_pub_rb.publish(l_rb);
+//            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
+//            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+//            n_rb.header.stamp = global_header.stamp;
+//            n_rb.a = normal_eqn(0);
+//            n_rb.b = normal_eqn(1);
+//            n_rb.c = normal_eqn(2);
+//            normal_pub_rb.publish(n_rb);
+//
+//            l_rb.header.stamp = global_header.stamp;
+//            l_rb.a1 = lls[i].line(0);
+//            l_rb.b1 = lls[i].line(1);
+//            l_rb.a2 = lls[i].line(2);
+//            l_rb.b2 = lls[i].line(3);
+//            line_pub_rb.publish(l_rb);
         }
 
         if(labelX == 'l' && labelY == 'b') {
             slopes_ordered[3] = lls[i].slope;
             lines_ordered[3] = lls[i].line;
-            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
-            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-//            ROS_INFO_STREAM("Normal Equation lb: " << normal_eqn);
-            n_lb.header.stamp = global_header.stamp;
-            n_lb.a = normal_eqn(0);
-            n_lb.b = normal_eqn(1);
-            n_lb.c = normal_eqn(2);
-            normal_pub_lb.publish(n_lb);
-
-            l_lb.header.stamp = global_header.stamp;
-            l_lb.a1 = lls[i].line(0);
-            l_lb.b1 = lls[i].line(1);
-            l_lb.a2 = lls[i].line(2);
-            l_lb.b2 = lls[i].line(3);
-            line_pub_lb.publish(l_lb);
+//            cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
+//            cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+//            n_lb.header.stamp = global_header.stamp;
+//            n_lb.a = normal_eqn(0);
+//            n_lb.b = normal_eqn(1);
+//            n_lb.c = normal_eqn(2);
+//            normal_pub_lb.publish(n_lb);
+//
+//            l_lb.header.stamp = global_header.stamp;
+//            l_lb.a1 = lls[i].line(0);
+//            l_lb.b1 = lls[i].line(1);
+//            l_lb.a2 = lls[i].line(2);
+//            l_lb.b2 = lls[i].line(3);
+//            line_pub_lb.publish(l_lb);
         }
     }
     double angle1 =
@@ -328,24 +324,80 @@ void drawLineSegments(cv::Mat image_in) {
                 line_txt = "lt";
                 line_color = cv::Scalar(255, 0, 0);
                 slopes_ordered[0] = lls[i].slope;
+                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
+                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                n_lt.header.stamp = global_header.stamp;
+                n_lt.a = normal_eqn(0);
+                n_lt.b = normal_eqn(1);
+                n_lt.c = normal_eqn(2);
+                normal_pub_lt.publish(n_lt);
+
+                l_lt.header.stamp = global_header.stamp;
+                l_lt.a1 = lls[i].line(0);
+                l_lt.b1 = lls[i].line(1);
+                l_lt.a2 = lls[i].line(2);
+                l_lt.b2 = lls[i].line(3);
+                line_pub_lt.publish(l_lt);
             }
 
             if(labelX == 'r' && labelY == 't') {
                 line_txt = "rt";
                 line_color = cv::Scalar(0, 0, 255);
                 slopes_ordered[1] = lls[i].slope;
+                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
+                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                n_rt.header.stamp = global_header.stamp;
+                n_rt.a = normal_eqn(0);
+                n_rt.b = normal_eqn(1);
+                n_rt.c = normal_eqn(2);
+                normal_pub_rt.publish(n_rt);
+
+                l_rt.header.stamp = global_header.stamp;
+                l_rt.a1 = lls[i].line(0);
+                l_rt.b1 = lls[i].line(1);
+                l_rt.a2 = lls[i].line(2);
+                l_rt.b2 = lls[i].line(3);
+                line_pub_rt.publish(l_rt);
             }
 
             if(labelX == 'r' && labelY == 'b') {
                 line_txt = "rb";
                 line_color = cv::Scalar(255, 255, 0);
                 slopes_ordered[2] = lls[i].slope;
+                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
+                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                n_rb.header.stamp = global_header.stamp;
+                n_rb.a = normal_eqn(0);
+                n_rb.b = normal_eqn(1);
+                n_rb.c = normal_eqn(2);
+                normal_pub_rb.publish(n_rb);
+
+                l_rb.header.stamp = global_header.stamp;
+                l_rb.a1 = lls[i].line(0);
+                l_rb.b1 = lls[i].line(1);
+                l_rb.a2 = lls[i].line(2);
+                l_rb.b2 = lls[i].line(3);
+                line_pub_rb.publish(l_rb);
             }
 
             if(labelX == 'l' && labelY == 'b') {
                 line_txt = "lb";
                 line_color = cv::Scalar(0, 255, 0);
                 slopes_ordered[3] = lls[i].slope;
+                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
+                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                n_lb.header.stamp = global_header.stamp;
+                n_lb.a = normal_eqn(0);
+                n_lb.b = normal_eqn(1);
+                n_lb.c = normal_eqn(2);
+                normal_pub_lb.publish(n_lb);
+
+                l_lb.header.stamp = global_header.stamp;
+                l_lb.a1 = lls[i].line(0);
+                l_lb.b1 = lls[i].line(1);
+                l_lb.a2 = lls[i].line(2);
+                l_lb.b2 = lls[i].line(3);
+                line_pub_lb.publish(l_lb);
             }
 
             cv::Scalar start_point_color = cv::Scalar(0, 255, 255);

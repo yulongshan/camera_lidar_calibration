@@ -10,7 +10,6 @@
 
   <node  pkg="projection" name="line_projection_node" type="line_projection_node" output="screen">
 	  <remap from="/image_in" to="/nerian_stereo/left_image"/>
-      <remap from="/cloud_in" to="/velodyne_points"/>
   </node>
 
 </launch>
