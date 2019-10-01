@@ -468,10 +468,12 @@ public:
             std::cout << C_T_L << std::endl;
             std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
             std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+            ROS_INFO_STREAM("Writing the result");
             std::ofstream results;
             results.open(result_str);
             results << C_T_L;
             results.close();
+            ROS_INFO_STREAM("Wrote result to: " << result_str);
             ros::shutdown();
         } else {
             ROS_INFO_STREAM("No of line views: " << no_of_line_views);

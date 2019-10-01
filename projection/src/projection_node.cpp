@@ -106,6 +106,7 @@ public:
             }
         }
 
+        std::cout << C_T_L << std::endl;
         C_R_L = C_T_L.block(0, 0, 3, 3);
         C_t_L = C_T_L.block(0, 3, 3, 1);
 

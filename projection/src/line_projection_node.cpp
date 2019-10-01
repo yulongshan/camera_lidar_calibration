@@ -123,6 +123,8 @@ public:
             }
         }
 
+        std::cout << C_T_L << std::endl;
+
         C_R_L = C_T_L.block(0, 0, 3, 3);
         C_t_L = C_T_L.block(0, 3, 3, 1);
 
@@ -257,7 +259,7 @@ public:
             distance = distanceFromLine(line2, imagePts2[i]);
             cv::circle(image_in, imagePts2[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
-        ROS_INFO_STREAM("Avg distance Line 2: " << distance/imagePts2.size());
+        ROS_INFO_STREAM("Avg distance Line 2: " << distance/imagePts2.size() << "\n");
 
         cv::imshow("image view", image_in);
         cv::waitKey(30);

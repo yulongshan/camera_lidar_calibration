@@ -3,10 +3,10 @@
 
   <param name = "/use_sim_time" value="true"/>
   <param name = "useLines" value="true"/>
-  <param name = "usePlane" value="true"/>
+  <param name = "usePlane" value="false"/>
   <param name = "max_no_of_line_views" value="25"/>
   <param name = "max_no_of_plane_views" value="15"/>
-  <param name = "initializeR" value="false"/>
+  <param name = "initializeR" value="true"/>
   <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="true"/>
 
