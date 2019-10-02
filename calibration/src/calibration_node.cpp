@@ -168,22 +168,29 @@ public:
         usePlane = readParam<bool>(nh, "usePlane");
 
         if(!useLines && !usePlane) {
-            ROS_ERROR("You have to atlease useLines or usePlane, shouldn't set both to false");
+            ROS_ERROR("You have to atleast use Lines or use Plane, shouldn't set both to false");
             ros::shutdown();
         }
 
         if(useLines) {
             max_no_of_line_views = readParam<int>(nh, "max_no_of_line_views");
+        } else {
+            max_no_of_line_views = 0;
         }
 
         if(usePlane) {
             max_no_of_plane_views = readParam<int>(nh, "max_no_of_plane_views");
+        } else {
+            max_no_of_plane_views = 0;
         }
 
         Nc_old = Eigen::Vector3d(0, 0, 0);
 
-        jointSol = readParam<bool>(nh, "jointSol");
-        planeFirst = readParam<bool>(nh, "planeFirst");
+        if(useLines && usePlane) {
+            jointSol = readParam<bool>(nh, "jointSol");
+            if(!jointSol)
+                planeFirst = readParam<bool>(nh, "planeFirst");
+        }
     }
 
     template <typename T>
@@ -311,7 +318,6 @@ public:
     }
 
     void solveJointOptimizationProb() {
-
         // Add planar residuals
         if(plane_data.size() > 0) {
             for(int i = 0; i < plane_data.size(); i++) {
@@ -378,8 +384,8 @@ public:
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
+            checkStatus();
         }
-        checkStatus();
     }
 
     void callbackLines(const sensor_msgs::PointCloud2ConstPtr &line1_msg,
@@ -436,8 +442,8 @@ public:
             line4_data.push_back(line4_datum);
 
             ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
+            checkStatus();
         }
-        checkStatus();
     }
 
     void checkStatus() {
@@ -447,38 +453,53 @@ public:
                                 no_of_plane_views >= max_no_of_plane_views &&
                                 no_of_line_views >= max_no_of_line_views;
 
-        if(lineOnlyCond || planeOnlyCond || bothLineAndPlane) {
+        if(bothLineAndPlane) {
             if(jointSol) {
+                ROS_WARN_STREAM("Solving Joint Optimization");
                 solveJointOptimizationProb();
-
             } else {
+                ROS_WARN_STREAM("Solving Serially");
                 if(planeFirst) {
+                    ROS_WARN_STREAM("Solving plane first, line second");
                     solvePlaneOptimization();
                     solveLineOptimization();
                 } else {
+                    ROS_WARN_STREAM("Solving line first, plane second");
                     solveLineOptimization();
                     solvePlaneOptimization();
                 }
             }
-            /// Printing and Storing C_T_L in a file
-            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
-            Eigen::MatrixXd C_T_L(3, 4);
-            C_T_L.block(0, 0, 3, 3) = Rotn;
-            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
-            std::cout << C_T_L << std::endl;
-            std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
-            std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
-            ROS_INFO_STREAM("Writing the result");
-            std::ofstream results;
-            results.open(result_str);
-            results << C_T_L;
-            results.close();
-            ROS_INFO_STREAM("Wrote result to: " << result_str);
-            ros::shutdown();
+            logOutput();
+        } else if(lineOnlyCond) {
+            ROS_WARN_STREAM("Solving Line Optimization Only");
+            solveLineOptimization();
+            logOutput();
+        } else if(planeOnlyCond) {
+            ROS_WARN_STREAM("Solving Plane Optimization Only");
+            solvePlaneOptimization();
+            logOutput();
         } else {
             ROS_INFO_STREAM("No of line views: " << no_of_line_views);
             ROS_INFO_STREAM("No of plane views: " << no_of_plane_views);
         }
+    }
+
+    void logOutput() {
+        /// Printing and Storing C_T_L in a file
+        ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+        Eigen::MatrixXd C_T_L(3, 4);
+        C_T_L.block(0, 0, 3, 3) = Rotn;
+        C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+        std::cout << C_T_L << std::endl;
+        std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
+        std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
+        ROS_WARN_STREAM("Writing the result");
+        std::ofstream results;
+        results.open(result_str);
+        results << C_T_L;
+        results.close();
+        ROS_WARN_STREAM("Wrote result to: " << result_str);
+        ros::shutdown();
     }
 };
 
