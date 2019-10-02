@@ -60,6 +60,8 @@ private:
     Eigen::Matrix3d C_R_L;
     Eigen::Vector3d C_t_L;
 
+    double dist_avg;
+    int no_of_frames;
 public:
     projectionLidarLines() {
         line1_image_sub = new
@@ -131,6 +133,9 @@ public:
         cv::eigen2cv(C_R_L, c_R_l);
         cv::Rodrigues(c_R_l, rvec);
         cv::eigen2cv(C_t_L, tvec);
+
+        no_of_frames = 0;
+        dist_avg = 0;
     }
 
     template <typename T>
@@ -221,7 +226,7 @@ public:
                   const sensor_msgs::PointCloud2ConstPtr& line1_cloud_msg,
                   const sensor_msgs::PointCloud2ConstPtr& line2_cloud_msg,
                   const sensor_msgs::ImageConstPtr& image_msg) {
-
+        no_of_frames++;
         cv::Mat image_in;
         try {
             image_in = cv_bridge::toCvShare(image_msg, "bgr8")->image;
@@ -247,19 +252,22 @@ public:
         cv::Vec3f line1 = getEqnOfLine(cv::Vec4f(line1_start.x, line1_start.y, line1_end.x, line1_end.y));
         cv::Vec3f line2 = getEqnOfLine(cv::Vec4f(line2_start.x, line2_start.y, line2_end.x, line2_end.y));
 
-        double distance;
+        double distance1 = 0;
         for(int i = 0; i < imagePts1.size(); i++){
-            distance = distanceFromLine(line1, imagePts1[i]);
+            distance1 += distanceFromLine(line1, imagePts1[i]);
             cv::circle(image_in, imagePts1[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
-        ROS_INFO_STREAM("Avg distance Line 1: " << distance/imagePts1.size());
+        distance1 = distance1/imagePts1.size();
 
-        distance = 0;
+        double distance2 = 0;
         for(int i = 0; i < imagePts2.size(); i++){
-            distance = distanceFromLine(line2, imagePts2[i]);
+            distance2 += distanceFromLine(line2, imagePts2[i]);
             cv::circle(image_in, imagePts2[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
-        ROS_INFO_STREAM("Avg distance Line 2: " << distance/imagePts2.size() << "\n");
+        distance2 = distance2/imagePts2.size();
+
+        dist_avg += (distance1+distance2)/2;
+        ROS_WARN_STREAM("Avg Reproj Error: " << dist_avg/no_of_frames);
 
         cv::imshow("image view", image_in);
         cv::waitKey(30);
