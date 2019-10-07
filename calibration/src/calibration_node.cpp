@@ -87,6 +87,11 @@ private:
     ceres::Problem problem_plane;
     ceres::Problem problem_line;
 
+    Eigen::Vector3d normal1_old;
+    Eigen::Vector3d normal2_old;
+    Eigen::Vector3d normal3_old;
+    Eigen::Vector3d normal4_old;
+
 public:
     calib() {
         line1_sub = new
@@ -191,6 +196,11 @@ public:
             if(!jointSol)
                 planeFirst = readParam<bool>(nh, "planeFirst");
         }
+
+        normal1_old = Eigen::Vector3d(0, 0, 0);
+        normal2_old = Eigen::Vector3d(0, 0, 0);
+        normal3_old = Eigen::Vector3d(0, 0, 0);
+        normal4_old = Eigen::Vector3d(0, 0, 0);
     }
 
     template <typename T>

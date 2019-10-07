@@ -184,8 +184,10 @@ public:
                 continue;
             objectPoints_L.push_back(cv::Point3d(pointCloud_L[0], pointCloud_L[1], pointCloud_L[2]));
         }
-        if(cloud_in.points.size() > 0)
+        if(objectPoints_L.size() > 0)
             cv::projectPoints(objectPoints_L, rvec, tvec, K, D, imagePoints, cv::noArray());
+        else
+            ROS_ERROR("objectPoints_L.size() <= 0");
         return imagePoints;
     }
 
