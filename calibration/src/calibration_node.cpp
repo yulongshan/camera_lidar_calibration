@@ -376,6 +376,7 @@ public:
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
                        const normal_msg::normalConstPtr &norm_msg,
                        const normal_msg::normalConstPtr &tvec_msg) {
+        ROS_WARN_STREAM("At Plane Callback");
         if(usePlane && no_of_plane_views < max_no_of_plane_views) {
             pcl::PointCloud<pcl::PointXYZ> plane_pcl;
             pcl::fromROSMsg(*plane_msg, plane_pcl);
@@ -406,6 +407,7 @@ public:
                        const normal_msg::normalConstPtr &norm2_msg,
                        const normal_msg::normalConstPtr &norm3_msg,
                        const normal_msg::normalConstPtr &norm4_msg) {
+        ROS_WARN_STREAM("At Line Callback");
         if(useLines && no_of_line_views < max_no_of_line_views) {
             pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
             pcl::fromROSMsg(*line1_msg, line_1_pcl);
@@ -416,47 +418,60 @@ public:
             pcl::PointCloud<pcl::PointXYZ> line_4_pcl;
             pcl::fromROSMsg(*line4_msg, line_4_pcl);
 
+            ROS_WARN_STREAM("Line 1 Size: " << line_1_pcl.points.size() << "\n"
+                         << "Line 2 Size: " << line_2_pcl.points.size() << "\n"
+                         << "Line 3 Size: " << line_3_pcl.points.size() << "\n"
+                         << "Line 4 Size: " << line_4_pcl.points.size());
 //            ceres::LossFunction *loss_function = NULL;
+            double no_pts_line1 = line_1_pcl.points.size();
+            double no_pts_line2 = line_2_pcl.points.size();
+            double no_pts_line3 = line_3_pcl.points.size();
+            double no_pts_line4 = line_4_pcl.points.size();
+            if (no_pts_line1 >= 2 && no_pts_line2 >= 2 &&
+                no_pts_line3 >= 2 && no_pts_line4 >= 2) {
+                Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
+                                                          norm1_msg->b,
+                                                          norm1_msg->c);
+                Eigen::Vector3d normal2 = Eigen::Vector3d(norm2_msg->a,
+                                                          norm2_msg->b,
+                                                          norm2_msg->c);
+                Eigen::Vector3d normal3 = Eigen::Vector3d(norm3_msg->a,
+                                                          norm3_msg->b,
+                                                          norm3_msg->c);
+                Eigen::Vector3d normal4 = Eigen::Vector3d(norm4_msg->a,
+                                                          norm4_msg->b,
+                                                          norm4_msg->c);
 
-            Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
-                                                      norm1_msg->b,
-                                                      norm1_msg->c);
-            Eigen::Vector3d normal2 = Eigen::Vector3d(norm2_msg->a,
-                                                      norm2_msg->b,
-                                                      norm2_msg->c);
-            Eigen::Vector3d normal3 = Eigen::Vector3d(norm3_msg->a,
-                                                      norm3_msg->b,
-                                                      norm3_msg->c);
-            Eigen::Vector3d normal4 = Eigen::Vector3d(norm4_msg->a,
-                                                      norm4_msg->b,
-                                                      norm4_msg->c);
+                dataFrame line1_datum;
+                line1_datum.lidar_pts = line_1_pcl;
+                line1_datum.normal = normal1;
+                line1_data.push_back(line1_datum);
 
-            dataFrame line1_datum;
-            line1_datum.lidar_pts = line_1_pcl;
-            line1_datum.normal = normal1;
-            line1_data.push_back(line1_datum);
+                dataFrame line2_datum;
+                line2_datum.lidar_pts = line_2_pcl;
+                line2_datum.normal = normal2;
+                line2_data.push_back(line2_datum);
 
-            dataFrame line2_datum;
-            line2_datum.lidar_pts = line_2_pcl;
-            line2_datum.normal = normal2;
-            line2_data.push_back(line2_datum);
+                dataFrame line3_datum;
+                line3_datum.lidar_pts = line_3_pcl;
+                line3_datum.normal = normal3;
+                line3_data.push_back(line3_datum);
 
-            dataFrame line3_datum;
-            line3_datum.lidar_pts = line_3_pcl;
-            line3_datum.normal = normal3;
-            line3_data.push_back(line3_datum);
+                dataFrame line4_datum;
+                line4_datum.lidar_pts = line_4_pcl;
+                line4_datum.normal = normal4;
+                line4_data.push_back(line4_datum);
 
-            dataFrame line4_datum;
-            line4_datum.lidar_pts = line_4_pcl;
-            line4_datum.normal = normal4;
-            line4_data.push_back(line4_datum);
-
-            ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
-            checkStatus();
+                ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
+                checkStatus();
+            } else {
+                ROS_WARN_STREAM("Insufficient points in line");
+            }
         }
     }
 
     void checkStatus() {
+        ROS_WARN_STREAM("At Check Status");
         bool lineOnlyCond = !usePlane && useLines && no_of_line_views >= max_no_of_line_views;
         bool planeOnlyCond = usePlane && !useLines && no_of_plane_views >= max_no_of_plane_views;
         bool bothLineAndPlane = usePlane && useLines &&
