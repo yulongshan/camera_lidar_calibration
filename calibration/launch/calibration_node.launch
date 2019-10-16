@@ -8,10 +8,11 @@
   <param name = "initializeR" value="true"/>
 
   <param name = "usePlane" value="true"/>
-  <param name = "useLines" value="true"/>
+  <param name = "useLines" value="false"/>
   <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="true"/>
 
+  <param name = "result_str" value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
   <node  pkg="calibration" name="calibration_node" type="calibration_node" output="screen">
   </node>
 

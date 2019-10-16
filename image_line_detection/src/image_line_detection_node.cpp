@@ -5,11 +5,14 @@
 #include <iostream>
 #include <string>
 
+#include <eigen3/Eigen/Eigen>
+
 #include <opencv2/imgproc.hpp>
 #include <opencv2/ximgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/eigen.hpp>
 
 #include "normal_msg/normal.h"
 #include "line_msg/line.h"
@@ -180,7 +183,37 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     cv::solvePnP(objectPoints, imagePoints, K, D, rvec, tvec);
 
     std::vector<cv::Point2f> imagePoints_proj;
-    cv::projectPoints(objectPoints, rvec, tvec, K, D, imagePoints_proj, cv::noArray(), 0);
+    cv::Mat jacobian;
+    cv::projectPoints(objectPoints, rvec, tvec, K, D, imagePoints_proj, jacobian, 0);
+    assert(objectPoints.size() == imagePoints_proj.size());
+    assert(imagePoints_proj.size() == imagePoints.size());
+    assert(imagePoints.size() == 4);
+    cv::Mat error_uv = cv::Mat::zeros(cv::Size(2, 4), CV_64F);
+    for(int i = 0; i < objectPoints.size(); i++) {
+        float e_u = imagePoints[i].x - imagePoints_proj[i].x;
+        float e_v = imagePoints[i].y - imagePoints_proj[i].y;
+        error_uv.at<double>(i, 0) = e_u;
+        error_uv.at<double>(i, 1) = e_v;
+    }
+    cv::Mat mu;
+    cv::Mat cov;
+    cv::calcCovarMatrix(error_uv, cov, mu, CV_COVAR_NORMAL | CV_COVAR_ROWS);
+    cov = cov/(error_uv.rows - 1);
+    Eigen::MatrixXd jacobian_eig(jacobian.rows, jacobian.cols);
+    Eigen::MatrixXd cov_eig(cov.rows, cov.cols);
+    cv::cv2eigen(jacobian, jacobian_eig);
+    cv::cv2eigen(cov, cov_eig);
+    Eigen::MatrixXd cov_UV = Eigen::MatrixXd::Identity(8, 8);
+    for(int i = 0; i < 4; i++) {
+        cov_UV.block(2*i, 2*i, 2, 2) = cov_eig;
+    }
+    Eigen::MatrixXd jacobian_RT(8, 6);
+    jacobian_RT = jacobian_eig.block(0, 0, 8, 6);
+    Eigen::MatrixXd info_mat = jacobian_RT.transpose()*cov_UV.inverse()*jacobian_RT;
+    Eigen::MatrixXd covRT = info_mat.inverse();
+    Eigen::Matrix3d covR = covRT.block(0, 0, 3, 3);
+    Eigen::Matrix3d covT = covRT.block(3, 3, 3, 3);
+
     cv::Mat C_R_W;
     cv::Rodrigues(rvec, C_R_W);
 
@@ -189,13 +222,15 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     n_plane.a = C_R_W.at<double>(0, 2);
     n_plane.b = C_R_W.at<double>(1, 2);
     n_plane.c = C_R_W.at<double>(2, 2);
+    n_plane.w = covR.trace();
+    normal_pub_chkrbrd.publish(n_plane);
 
     normal_msg::normal tvec_plane;
     tvec_plane.header.stamp = global_header.stamp;
     tvec_plane.a = tvec.at<double>(0);
     tvec_plane.b = tvec.at<double>(1);
     tvec_plane.c = tvec.at<double>(2);
-    normal_pub_chkrbrd.publish(n_plane);
+    tvec_plane.w = covT.trace();
     tvec_pub_chkrbrd.publish(tvec_plane);
 //    std::cout << tvec << std::endl;
     return imagePoints_proj;
@@ -250,6 +285,30 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                 angle4 > 50 &&
                     dist02 > 150 &&
                         dist13 > 150) {
+
+        cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
+        cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
+        cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
+        cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
+        std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
+        cv::circle(image_in, pt1, 7,
+                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, pt2, 7,
+                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, pt3, 7,
+                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, pt4, 7,
+                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+
+        cv::circle(image_in, re_projected_pts[0], 7,
+                   cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[1], 7,
+                   cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[2], 7,
+                   cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
+        cv::circle(image_in, re_projected_pts[3], 7,
+                   cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
+
         for(size_t i = 0; i < 4; i++) {
             cv::Vec4f line_i = lls[i].line;
 
@@ -356,29 +415,6 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                         mid_pt, cv::FONT_HERSHEY_DUPLEX,
                         1, cv::Scalar(0, 143, 143), 2);
         }
-
-        cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
-        cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
-        cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
-        cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
-        std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
-        cv::circle(image_in, pt1, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt2, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt3, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt4, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-
-        cv::circle(image_in, re_projected_pts[0], 7,
-                   cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[1], 7,
-                   cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[2], 7,
-                   cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[3], 7,
-                   cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
     }
     cv::imshow("view", image_in);
     cv::waitKey(1);

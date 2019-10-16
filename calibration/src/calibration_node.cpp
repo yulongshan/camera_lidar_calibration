@@ -24,6 +24,7 @@
 struct dataFrame {
     pcl::PointCloud<pcl::PointXYZ> lidar_pts;
     Eigen::Vector3d normal;
+    double noise;
 };
 
 typedef message_filters::sync_policies::ApproximateTime
@@ -163,9 +164,7 @@ public:
         R_t(5) = translation(2);
 
         problem.AddParameterBlock(R_t.data(), 6);
-
-        result_str = "/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt";
-
+        result_str = readParam<std::string>(nh, "result_str");
         no_of_line_views = 0;
         no_of_plane_views = 0;
 
@@ -219,9 +218,10 @@ public:
     }
 
     void addPlaneResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
-                               Eigen::Vector3d normal) {
+                               Eigen::Vector3d normal,
+                               double noise) {
         ceres::LossFunction *loss_function = NULL;
-        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+        double pi_sqrt = 1/sqrt(noise*(double)lidar_pts.size());
         for(int j = 0; j < lidar_pts.points.size(); j++){
             Eigen::Vector3d point_3d(lidar_pts.points[j].x,
                                      lidar_pts.points[j].y,
@@ -286,7 +286,7 @@ public:
         for(int i = 0; i < plane_data.size(); i++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[i].lidar_pts;
             Eigen::Vector3d normal = plane_data[i].normal;
-            addPlaneResidual(lidar_pts, normal);
+            addPlaneResidual(lidar_pts, normal, plane_data[i].noise);
         }
         ceres::Solver::Options options;
         options.max_num_iterations = 200;
@@ -390,6 +390,7 @@ public:
                 dataFrame plane_datum;
                 plane_datum.lidar_pts = plane_pcl;
                 plane_datum.normal = Nc;
+                plane_datum.noise = 1;
                 plane_data.push_back(plane_datum);
 
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
