@@ -188,6 +188,10 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     assert(objectPoints.size() == imagePoints_proj.size());
     assert(imagePoints_proj.size() == imagePoints.size());
     assert(imagePoints.size() == 4);
+
+    Eigen::MatrixXd jacobian_eig(jacobian.rows, jacobian.cols);
+    cv::cv2eigen(jacobian, jacobian_eig);
+
     cv::Mat error_uv = cv::Mat::zeros(cv::Size(2, 4), CV_64F);
     for(int i = 0; i < objectPoints.size(); i++) {
         float e_u = imagePoints[i].x - imagePoints_proj[i].x;
@@ -199,30 +203,29 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     cv::Mat cov;
     cv::calcCovarMatrix(error_uv, cov, mu, CV_COVAR_NORMAL | CV_COVAR_ROWS);
     cov = cov/(error_uv.rows - 1);
-    Eigen::MatrixXd jacobian_eig(jacobian.rows, jacobian.cols);
-    Eigen::MatrixXd cov_eig(cov.rows, cov.cols);
-    cv::cv2eigen(jacobian, jacobian_eig);
+    Eigen::Matrix2d cov_eig = Eigen::Matrix2d::Identity();
     cv::cv2eigen(cov, cov_eig);
-    Eigen::MatrixXd cov_UV = Eigen::MatrixXd::Identity(8, 8);
-    for(int i = 0; i < 4; i++) {
-        cov_UV.block(2*i, 2*i, 2, 2) = cov_eig;
-    }
-    Eigen::MatrixXd jacobian_RT(8, 6);
-    jacobian_RT = jacobian_eig.block(0, 0, 8, 6);
-    Eigen::MatrixXd info_mat = jacobian_RT.transpose()*cov_UV.inverse()*jacobian_RT;
-    Eigen::MatrixXd covRT = info_mat.inverse();
-    Eigen::Matrix3d covR = covRT.block(0, 0, 3, 3);
-    Eigen::Matrix3d covT = covRT.block(3, 3, 3, 3);
+    Eigen::MatrixXd jacobian_1 = jacobian_eig.block(0, 0, 2, 6);
+    Eigen::MatrixXd jacobian_2 = jacobian_eig.block(0, 2, 2, 6);
+    Eigen::MatrixXd jacobian_3 = jacobian_eig.block(0, 4, 2, 6);
+    Eigen::MatrixXd jacobian_4 = jacobian_eig.block(0, 6, 2, 6);
+    Eigen::MatrixXd info_mat_1 = jacobian_1.transpose() * cov_eig.inverse() * jacobian_1;
+    Eigen::MatrixXd info_mat_2 = jacobian_2.transpose() * cov_eig.inverse() * jacobian_2;
+    Eigen::MatrixXd info_mat_3 = jacobian_3.transpose() * cov_eig.inverse() * jacobian_3;
+    Eigen::MatrixXd info_mat_4 = jacobian_4.transpose() * cov_eig.inverse() * jacobian_4;
+    Eigen::MatrixXd info_mat = info_mat_1 + info_mat_2 + info_mat_3 + info_mat_4;
+    Eigen::MatrixXd cov_matRT = info_mat.inverse();
+    Eigen::MatrixXd cov_matR = cov_matRT.block(0, 0, 3, 3);
+    Eigen::MatrixXd cov_matT = cov_matRT.block(3, 3, 3, 3);
 
     cv::Mat C_R_W;
     cv::Rodrigues(rvec, C_R_W);
-
     normal_msg::normal n_plane;
     n_plane.header.stamp = global_header.stamp;
     n_plane.a = C_R_W.at<double>(0, 2);
     n_plane.b = C_R_W.at<double>(1, 2);
     n_plane.c = C_R_W.at<double>(2, 2);
-    n_plane.w = covR.trace();
+    n_plane.w = cov_matR.trace();
     normal_pub_chkrbrd.publish(n_plane);
 
     normal_msg::normal tvec_plane;
@@ -230,9 +233,9 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     tvec_plane.a = tvec.at<double>(0);
     tvec_plane.b = tvec.at<double>(1);
     tvec_plane.c = tvec.at<double>(2);
-    tvec_plane.w = covT.trace();
+    tvec_plane.w = cov_matT.trace();
     tvec_pub_chkrbrd.publish(tvec_plane);
-//    std::cout << tvec << std::endl;
+
     return imagePoints_proj;
 }
 

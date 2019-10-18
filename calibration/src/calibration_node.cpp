@@ -221,7 +221,11 @@ public:
                                Eigen::Vector3d normal,
                                double noise) {
         ceres::LossFunction *loss_function = NULL;
-        double pi_sqrt = 1/sqrt(noise*(double)lidar_pts.size());
+//        double pi_sqrt = 1/sqrt(noise*(double)lidar_pts.size());
+//        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+//        double pi_sqrt = 1/sqrt(noise);
+        double pi_sqrt = 1;
+        std::cout << pi_sqrt << std::endl;
         for(int j = 0; j < lidar_pts.points.size(); j++){
             Eigen::Vector3d point_3d(lidar_pts.points[j].x,
                                      lidar_pts.points[j].y,
@@ -390,9 +394,8 @@ public:
                 dataFrame plane_datum;
                 plane_datum.lidar_pts = plane_pcl;
                 plane_datum.normal = Nc;
-                plane_datum.noise = 1;
+                plane_datum.noise = tvec_msg->w + norm_msg->w;
                 plane_data.push_back(plane_datum);
-
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
