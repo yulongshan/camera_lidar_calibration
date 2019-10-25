@@ -143,18 +143,41 @@ public:
         sync2->registerCallback(boost::bind(&calib::callbackPlane, this, _1, _2, _3));
 
         Rotn = Eigen::Matrix3d::Zero();
+
         initializeR = readParam<bool>(nh, "initializeR");
         if(initializeR) {
-            Rotn(0, 0) = 0; Rotn(0, 1) = -1; Rotn(0, 2) = 0;
-            Rotn(1, 0) = 0; Rotn(1, 1) = 0; Rotn(1, 2) = -1;
-            Rotn(2, 0) = 1; Rotn(2, 1) = 0; Rotn(2, 2) = 0;
+//            Rotn(0, 0) = 0.0129166;
+//            Rotn(0, 1) = -0.999682;
+//            Rotn(0, 2) = 0.02165;
+//            Rotn(1, 0) = -0.00902853;
+//            Rotn(1, 1) = -0.0217676;
+//            Rotn(1, 2) = -0.999722;
+//            Rotn(2, 0) = 0.999876;
+//            Rotn(2, 1) = 0.0127175;
+//            Rotn(2, 2) = -0.00930682;
+            Rotn(0, 0) = 0.0;
+            Rotn(0, 1) = -1.0;
+            Rotn(0, 2) = 0.0;
+            Rotn(1, 0) = 0.0;
+            Rotn(1, 1) = 0.0;
+            Rotn(1, 2) = -1.0;
+            Rotn(2, 0) = 1.0;
+            Rotn(2, 1) = 0.0;
+            Rotn(2, 2) = 0.0;
         } else {
-            Rotn(0, 0) = 1; Rotn(0, 1) = 0; Rotn(0, 2) = 0;
-            Rotn(1, 0) = 0; Rotn(1, 1) = 1; Rotn(1, 2) = 0;
-            Rotn(2, 0) = 0; Rotn(2, 1) = 0; Rotn(2, 2) = 1;
+            Rotn(0, 0) = 1;
+            Rotn(0, 1) = 0;
+            Rotn(0, 2) = 0;
+            Rotn(1, 0) = 0;
+            Rotn(1, 1) = 1;
+            Rotn(1, 2) = 0;
+            Rotn(2, 0) = 0;
+            Rotn(2, 1) = 0;
+            Rotn(2, 2) = 1;
         }
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
-        translation = Eigen::Vector3d(0,0, 0);
+        translation = Eigen::Vector3d(0, 0, 0);
+//        translation = Eigen::Vector3d(0.202576, -0.185976, -0.0412139);
         R_t = Eigen::VectorXd(6);
         R_t(0) = axis_angle(0);
         R_t(1) = axis_angle(1);
@@ -220,11 +243,11 @@ public:
     void addPlaneResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,
                                Eigen::Vector3d normal,
                                double noise) {
-        ceres::LossFunction *loss_function = NULL;
 //        double pi_sqrt = 1/sqrt(noise*(double)lidar_pts.size());
 //        double pi_sqrt = 1/sqrt((double)lidar_pts.size());
 //        double pi_sqrt = 1/sqrt(noise);
         double pi_sqrt = 1;
+        ROS_WARN_STREAM("pi_sqrt: " << pi_sqrt);
         std::cout << pi_sqrt << std::endl;
         for(int j = 0; j < lidar_pts.points.size(); j++){
             Eigen::Vector3d point_3d(lidar_pts.points[j].x,
@@ -233,8 +256,9 @@ public:
             // Add residual here
             ceres::CostFunction *cost_function = new
                     ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-                    (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
-            problem_plane.AddResidualBlock(cost_function, loss_function, R_t.data());
+                    (new CalibrationErrorTermPlane(point_3d, normal, 1));
+            problem_plane.AddResidualBlock(cost_function, new ceres::ScaledLoss(NULL, pi_sqrt, ceres::TAKE_OWNERSHIP),
+                    R_t.data());
         }
     }
 
@@ -291,6 +315,7 @@ public:
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[i].lidar_pts;
             Eigen::Vector3d normal = plane_data[i].normal;
             addPlaneResidual(lidar_pts, normal, plane_data[i].noise);
+//            addPlaneResidual(lidar_pts, normal, 1);
         }
         ceres::Solver::Options options;
         options.max_num_iterations = 200;

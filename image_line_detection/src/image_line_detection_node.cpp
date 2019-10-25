@@ -151,6 +151,41 @@ cv::Point2f getIntersection(cv::Vec4f line_1, cv::Vec4f line_2) {
     return pt;
 }
 
+Eigen::Vector2d gettraceRT(cv::Mat jacobian, std::vector<double> reprojection_errors) {
+    double sum = std::accumulate(reprojection_errors.begin(), reprojection_errors.end(), 0.0);
+    double mean = sum / reprojection_errors.size();
+
+    std::vector<double> diff(reprojection_errors.size());
+    std::transform(reprojection_errors.begin(), reprojection_errors.end(), diff.begin(),
+                   std::bind2nd(std::minus<double>(), mean));
+
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double stdev_rperr = std::sqrt(sq_sum / (reprojection_errors.size()-1));
+
+    cv::Mat J = jacobian;
+    cv::Mat Sigma = cv::Mat(J.t() * J, cv::Rect(0, 0, 6, 6)).inv();
+    cv::Mat std_dev;
+    sqrt(Sigma.diag(), std_dev);
+    cv::Mat standard_deviation = std_dev*stdev_rperr;
+    Eigen::VectorXd varianceRT_eig(6);
+    varianceRT_eig(0) = standard_deviation.at<double>(0)*
+                        standard_deviation.at<double>(0);
+    varianceRT_eig(1) = standard_deviation.at<double>(1)*
+                        standard_deviation.at<double>(1);
+    varianceRT_eig(2) = standard_deviation.at<double>(2)*
+                        standard_deviation.at<double>(2);
+    varianceRT_eig(3) = standard_deviation.at<double>(3)*
+                        standard_deviation.at<double>(3);
+    varianceRT_eig(4) = standard_deviation.at<double>(4)*
+                        standard_deviation.at<double>(4);
+    varianceRT_eig(5) = standard_deviation.at<double>(5)*
+                        standard_deviation.at<double>(5);
+    double traceR = varianceRT_eig(0)+varianceRT_eig(1)+varianceRT_eig(2);
+    double traceT = varianceRT_eig(3)+varianceRT_eig(4)+varianceRT_eig(5);
+    Eigen::Vector2d traceRT(traceR, traceT);
+    return traceRT;
+}
+
 std::vector<cv::Point2f> getPose(cv::Point2f pt1,
                                  cv::Point2f pt2,
                                  cv::Point2f pt3,
@@ -193,12 +228,16 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     cv::cv2eigen(jacobian, jacobian_eig);
 
     cv::Mat error_uv = cv::Mat::zeros(cv::Size(2, 4), CV_64F);
+    std::vector<double> reproj_errs;
     for(int i = 0; i < objectPoints.size(); i++) {
         float e_u = imagePoints[i].x - imagePoints_proj[i].x;
         float e_v = imagePoints[i].y - imagePoints_proj[i].y;
         error_uv.at<double>(i, 0) = e_u;
         error_uv.at<double>(i, 1) = e_v;
+        reproj_errs.push_back(e_u);
+        reproj_errs.push_back(e_v);
     }
+    Eigen::Vector2d traceRT = gettraceRT(jacobian, reproj_errs);
     cv::Mat mu;
     cv::Mat cov;
     cv::calcCovarMatrix(error_uv, cov, mu, CV_COVAR_NORMAL | CV_COVAR_ROWS);
@@ -225,7 +264,7 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     n_plane.a = C_R_W.at<double>(0, 2);
     n_plane.b = C_R_W.at<double>(1, 2);
     n_plane.c = C_R_W.at<double>(2, 2);
-    n_plane.w = cov_matR.trace();
+    n_plane.w = traceRT(0);
     normal_pub_chkrbrd.publish(n_plane);
 
     normal_msg::normal tvec_plane;
@@ -233,7 +272,7 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     tvec_plane.a = tvec.at<double>(0);
     tvec_plane.b = tvec.at<double>(1);
     tvec_plane.c = tvec.at<double>(2);
-    tvec_plane.w = cov_matT.trace();
+    tvec_plane.w = traceRT(1);
     tvec_pub_chkrbrd.publish(tvec_plane);
 
     return imagePoints_proj;
