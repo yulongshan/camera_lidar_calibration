@@ -146,15 +146,15 @@ public:
 
         initializeR = readParam<bool>(nh, "initializeR");
         if(initializeR) {
-//            Rotn(0, 0) = 0.0129166;
-//            Rotn(0, 1) = -0.999682;
-//            Rotn(0, 2) = 0.02165;
-//            Rotn(1, 0) = -0.00902853;
-//            Rotn(1, 1) = -0.0217676;
+//            Rotn(0, 0) = 0.0131765;
+//            Rotn(0, 1) = -0.99968;
+//            Rotn(0, 2) = 0.0216081;
+//            Rotn(1, 0) = -0.00916756;
+//            Rotn(1, 1) = -0.0217299;
 //            Rotn(1, 2) = -0.999722;
-//            Rotn(2, 0) = 0.999876;
-//            Rotn(2, 1) = 0.0127175;
-//            Rotn(2, 2) = -0.00930682;
+//            Rotn(2, 0) = 0.999871;
+//            Rotn(2, 1) = 0.0129748;
+//            Rotn(2, 2) = -0.00945095;
             Rotn(0, 0) = 0.0;
             Rotn(0, 1) = -1.0;
             Rotn(0, 2) = 0.0;
@@ -177,7 +177,7 @@ public:
         }
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
         translation = Eigen::Vector3d(0, 0, 0);
-//        translation = Eigen::Vector3d(0.202576, -0.185976, -0.0412139);
+//        translation = Eigen::Vector3d(0.202341, -0.190881, -0.0415082);
         R_t = Eigen::VectorXd(6);
         R_t(0) = axis_angle(0);
         R_t(1) = axis_angle(1);
