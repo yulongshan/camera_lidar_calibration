@@ -332,7 +332,7 @@ public:
         }
         distance4 = distance4/imagePts4.size();
 
-        dist_avg += (distance1 + distance2 + distance3 + distance4)/2;
+        dist_avg += (distance1 + distance2 + distance3 + distance4)/4;
         ROS_WARN_STREAM("Avg Reproj Error: " << dist_avg/no_of_frames);
 
         cv::imshow("image view", image_in);

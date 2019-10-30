@@ -7,7 +7,7 @@
   <param name = "initializeR" value="false"/>
 
   <param name = "usePlane" value="true"/>
-  <param name = "useLines" value="true"/>
+  <param name = "useLines" value="false"/>
   <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="true"/>
 

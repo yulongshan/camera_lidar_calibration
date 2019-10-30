@@ -21,7 +21,6 @@ catkin_package(
   DEPENDS PCL
 )
 
-
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -29,11 +28,15 @@ include_directories(
   ${CERES_INCLUDE_DIRS}
 )
 
-
 add_executable(${PROJECT_NAME}_node src/calibration_node.cpp)
+add_executable(calibration_node_test_initialization_node src/calibration_node_test_initialization.cpp)
 
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
    ${CERES_LIBRARIES}
 )
 
+target_link_libraries(calibration_node_test_initialization_node
+   ${catkin_LIBRARIES}
+   ${CERES_LIBRARIES}
+)
