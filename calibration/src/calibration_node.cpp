@@ -1,3 +1,8 @@
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include <ctime>
+
 #include <ros/ros.h>
 
 #include <sensor_msgs/PointCloud2.h>
@@ -88,11 +93,6 @@ private:
     ceres::Problem problem_plane;
     ceres::Problem problem_line;
 
-    Eigen::Vector3d normal1_old;
-    Eigen::Vector3d normal2_old;
-    Eigen::Vector3d normal3_old;
-    Eigen::Vector3d normal4_old;
-
 public:
     calib() {
         line1_sub = new
@@ -145,39 +145,16 @@ public:
         Rotn = Eigen::Matrix3d::Zero();
 
         initializeR = readParam<bool>(nh, "initializeR");
+        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
         if(initializeR) {
-//            Rotn(0, 0) = 0.0131765;
-//            Rotn(0, 1) = -0.99968;
-//            Rotn(0, 2) = 0.0216081;
-//            Rotn(1, 0) = -0.00916756;
-//            Rotn(1, 1) = -0.0217299;
-//            Rotn(1, 2) = -0.999722;
-//            Rotn(2, 0) = 0.999871;
-//            Rotn(2, 1) = 0.0129748;
-//            Rotn(2, 2) = -0.00945095;
-            Rotn(0, 0) = 0.0;
-            Rotn(0, 1) = -1.0;
-            Rotn(0, 2) = 0.0;
-            Rotn(1, 0) = 0.0;
-            Rotn(1, 1) = 0.0;
-            Rotn(1, 2) = -1.0;
-            Rotn(2, 0) = 1.0;
-            Rotn(2, 1) = 0.0;
-            Rotn(2, 2) = 0.0;
+            Rotn(0, 0) = 0.0; Rotn(0, 1) = -1.0; Rotn(0, 2) = 0.0;
+            Rotn(1, 0) = 0.0; Rotn(1, 1) = 0.0; Rotn(1, 2) = -1.0;
+            Rotn(2, 0) = 1.0; Rotn(2, 1) = 0.0; Rotn(2, 2) = 0.0;
         } else {
-            Rotn(0, 0) = 1;
-            Rotn(0, 1) = 0;
-            Rotn(0, 2) = 0;
-            Rotn(1, 0) = 0;
-            Rotn(1, 1) = 1;
-            Rotn(1, 2) = 0;
-            Rotn(2, 0) = 0;
-            Rotn(2, 1) = 0;
-            Rotn(2, 2) = 1;
+            Rotn = transformation_matrix.block(0, 0, 3, 3);
         }
         ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
-        translation = Eigen::Vector3d(0, 0, 0);
-//        translation = Eigen::Vector3d(0.202341, -0.190881, -0.0415082);
+        translation = transformation_matrix.block(0, 3, 3, 1);
         R_t = Eigen::VectorXd(6);
         R_t(0) = axis_angle(0);
         R_t(1) = axis_angle(1);
@@ -218,11 +195,6 @@ public:
             if(!jointSol)
                 planeFirst = readParam<bool>(nh, "planeFirst");
         }
-
-        normal1_old = Eigen::Vector3d(0, 0, 0);
-        normal2_old = Eigen::Vector3d(0, 0, 0);
-        normal3_old = Eigen::Vector3d(0, 0, 0);
-        normal4_old = Eigen::Vector3d(0, 0, 0);
     }
 
     template <typename T>
@@ -238,6 +210,49 @@ public:
             n.shutdown();
         }
         return ans;
+    }
+
+    void addGaussianNoise(Eigen::Matrix4d &transformation) {
+        std::vector<double> data_rot = {0, 0, 0};
+        const double mean_rot = 0.0;
+        std::default_random_engine generator_rot;
+        generator_rot.seed(std::chrono::system_clock::now().time_since_epoch().count());
+        std::normal_distribution<double> dist(mean_rot, 10);
+
+        // Add Gaussian noise
+        for (auto& x : data_rot) {
+            x = x + dist(generator_rot);
+        }
+
+        double roll = data_rot[0]*M_PI/180;
+        double pitch = data_rot[1]*M_PI/180;
+        double yaw = data_rot[2]*M_PI/180;
+
+        Eigen::Matrix3d m;
+        m = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
+            * Eigen::AngleAxisd(pitch,  Eigen::Vector3d::UnitY())
+            * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+
+        std::vector<double> data_trans = {0, 0, 0};
+        const double mean_trans = 0.0;
+        std::default_random_engine generator_trans;
+        generator_trans.seed(std::chrono::system_clock::now().time_since_epoch().count());
+        std::normal_distribution<double> dist_trans(mean_trans, 0.5);
+
+        // Add Gaussian noise
+        for (auto& x : data_trans) {
+            x = x + dist_trans(generator_trans);
+        }
+
+        Eigen::Vector3d trans;
+        trans(0) = data_trans[0];
+        trans(1) = data_trans[1];
+        trans(2) = data_trans[2];
+
+        Eigen::Matrix4d trans_noise = Eigen::Matrix4d::Identity();
+        trans_noise.block(0, 0, 3, 3) = m;
+        trans_noise.block(0, 3, 3, 1) = trans;
+        transformation = transformation*trans_noise;
     }
 
     void addPlaneResidual(pcl::PointCloud<pcl::PointXYZ> lidar_pts,

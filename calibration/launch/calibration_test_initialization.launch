@@ -8,12 +8,12 @@
 
   <param name = "usePlane" value="true"/>
   <param name = "useLines" value="true"/>
-  <param name = "jointSol" value="true"/>
+  <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="false"/>
 
-  <param name = "result_str" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
-  <param name = "initializations_file" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/matlab/initializations.csv"/>
-  <param name = "results_file" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/matlab/results.csv"/>
+  <param name = "result_str" value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
+  <param name = "initializations_file" value="/home/usl/catkin_ws/src/camera_lidar_calibration/matlab/initializations.csv"/>
+  <param name = "results_file" value="/home/usl/catkin_ws/src/camera_lidar_calibration/matlab/results.csv"/>
   <node  pkg = "calibration" name="calibration_node_test_initialization_node" type="calibration_node_test_initialization_node" output="screen">
   </node>
 
