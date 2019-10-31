@@ -4,9 +4,9 @@
   <param name ="/use_sim_time"
          value="true"/>
   <param name ="result_str"
-         value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
+         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
   <param name ="cam_config_file_path"
-         value="/home/usl/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
+         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
 
   <node  pkg="projection" name="line_projection_node" type="line_projection_node" output="screen">
 	  <remap from="/image_in" to="/nerian_stereo/left_image"/>

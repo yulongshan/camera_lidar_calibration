@@ -23,6 +23,12 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
 
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/core/eigen.hpp>
+
+#include "line_msg/line.h"
+
 #include <fstream>
 #include <iostream>
 
@@ -30,6 +36,17 @@ struct dataFrame {
     pcl::PointCloud<pcl::PointXYZ> lidar_pts;
     Eigen::Vector3d normal;
     double noise;
+};
+
+struct cloudAndImageLine {
+    pcl::PointCloud<pcl::PointXYZ> line_cloud1;
+    pcl::PointCloud<pcl::PointXYZ> line_cloud2;
+    pcl::PointCloud<pcl::PointXYZ> line_cloud3;
+    pcl::PointCloud<pcl::PointXYZ> line_cloud4;
+    cv::Vec3f line_image1;
+    cv::Vec3f line_image2;
+    cv::Vec3f line_image3;
+    cv::Vec3f line_image4;
 };
 
 typedef message_filters::sync_policies::ApproximateTime
@@ -47,6 +64,17 @@ typedef message_filters::sync_policies::ApproximateTime
          normal_msg::normal,
          normal_msg::normal> SyncPolicy2;
 
+
+typedef message_filters::sync_policies::ApproximateTime
+        <line_msg::line,
+         line_msg::line,
+         line_msg::line,
+         line_msg::line,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2> SyncPolicy3;
+
 class calib {
 private:
     ros::NodeHandle nh;
@@ -58,13 +86,17 @@ private:
     message_filters::Subscriber<normal_msg::normal> *normal2_sub;
     message_filters::Subscriber<normal_msg::normal> *normal3_sub;
     message_filters::Subscriber<normal_msg::normal> *normal4_sub;
-
+    message_filters::Subscriber<line_msg::line> *line1_image_sub;
+    message_filters::Subscriber<line_msg::line> *line2_image_sub;
+    message_filters::Subscriber<line_msg::line> *line3_image_sub;
+    message_filters::Subscriber<line_msg::line> *line4_image_sub;
     message_filters::Subscriber<sensor_msgs::PointCloud2> *chkrbrdplane_sub;
     message_filters::Subscriber<normal_msg::normal> *normal_sub;
     message_filters::Subscriber<normal_msg::normal> *tvec_sub;
 
     message_filters::Synchronizer<SyncPolicy1> *sync1;
     message_filters::Synchronizer<SyncPolicy2> *sync2;
+    message_filters::Synchronizer<SyncPolicy3> *sync3;
 
     int no_of_line_views, max_no_of_line_views;
     int no_of_plane_views, max_no_of_plane_views;
@@ -81,7 +113,13 @@ private:
     std::vector<dataFrame> line3_data;
     std::vector<dataFrame> line4_data;
 
+    std::vector<cloudAndImageLine> lidar_img_line_data;
+
     std::string result_str;
+    std::string cam_config_file_path;
+
+    cv::Mat D, K;
+    int image_width, image_height;
 
     bool useLines;
     bool usePlane;
@@ -93,6 +131,8 @@ private:
 
     std::string initializations_file;
     std::string results_file;
+
+    double fov_x, fov_y;
 
     std::ofstream init_file;
     std::ofstream res_file;
@@ -133,6 +173,19 @@ public:
                 message_filters::Subscriber
                         <normal_msg::normal>(nh, "/tvec_plane", 1);
 
+        line1_image_sub = new
+                message_filters::Subscriber
+                        <line_msg::line>(nh, "/line_image1", 1);
+        line2_image_sub = new
+                message_filters::Subscriber
+                        <line_msg::line>(nh, "/line_image2", 1);
+        line3_image_sub = new
+                message_filters::Subscriber
+                        <line_msg::line>(nh, "/line_image3", 1);
+        line4_image_sub = new
+                message_filters::Subscriber
+                        <line_msg::line>(nh, "/line_image4", 1);
+
         sync1 = new message_filters::Synchronizer<SyncPolicy1>(SyncPolicy1(10),
                 *line1_sub, *line2_sub, *line3_sub, *line4_sub,
                 *normal1_sub, *normal2_sub, *normal3_sub, *normal4_sub);
@@ -146,9 +199,42 @@ public:
                                                                *tvec_sub);
         sync2->registerCallback(boost::bind(&calib::callbackPlane, this, _1, _2, _3));
 
+
+        sync3 = new message_filters::Synchronizer
+                <SyncPolicy3>(SyncPolicy3(10),
+                             *line1_image_sub,
+                             *line2_image_sub,
+                             *line3_image_sub,
+                             *line4_image_sub,
+                             *line1_sub,
+                             *line2_sub,
+                             *line3_sub,
+                             *line4_sub);
+        sync3->registerCallback(boost::bind(&calib::callbackImageAndLidarLines, this, _1, _2, _3, _4,
+                                                                                      _5, _6, _7, _8));
         Rotn = Eigen::Matrix3d::Zero();
 
         result_str = readParam<std::string>(nh, "result_str");
+        cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
+
+        cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
+        ROS_ASSERT(fs_cam_config.isOpened());
+        K = cv::Mat::zeros(3, 3, CV_64F);
+        D = cv::Mat::zeros(4, 1, CV_64F);
+        fs_cam_config["image_height"] >> image_height;
+        fs_cam_config["image_width"] >> image_width;
+        fs_cam_config["k1"] >> D.at<double>(0);
+        fs_cam_config["k2"] >> D.at<double>(1);
+        fs_cam_config["p1"] >> D.at<double>(2);
+        fs_cam_config["p2"] >> D.at<double>(3);
+        fs_cam_config["fx"] >> K.at<double>(0, 0);
+        fs_cam_config["fy"] >> K.at<double>(1, 1);
+        fs_cam_config["cx"] >> K.at<double>(0, 2);
+        fs_cam_config["cy"] >> K.at<double>(1, 2);
+
+        fov_x = 2*atan2(image_width, 2*K.at<double>(0, 0))*180/CV_PI;
+        fov_y = 2*atan2(image_height, 2*K.at<double>(1, 1))*180/CV_PI;
+
         no_of_line_views = 0;
         no_of_plane_views = 0;
 
@@ -242,10 +328,110 @@ public:
         transformation = transformation*trans_noise;
     }
 
+    std::vector<cv::Point2d> getProjectedPts(pcl::PointCloud<pcl::PointXYZ> cloud_in, Eigen::MatrixXd C_T_L) {
+        std::vector<cv::Point3d> objectPoints_L;
+        std::vector<cv::Point2d> imagePoints;
+        for(int i = 0; i < cloud_in.points.size(); i++) {
+            if(cloud_in.points[i].x < 0 || cloud_in.points[i].x > 3)
+                continue;
+
+            Eigen::Vector4d pointCloud_L;
+            pointCloud_L[0] = cloud_in.points[i].x;
+            pointCloud_L[1] = cloud_in.points[i].y;
+            pointCloud_L[2] = cloud_in.points[i].z;
+            pointCloud_L[3] = 1;
+
+            Eigen::Vector3d pointCloud_C;
+            pointCloud_C = C_T_L.block(0, 0, 3, 4) * pointCloud_L;
+
+            double X = pointCloud_C[0];
+            double Y = pointCloud_C[1];
+            double Z = pointCloud_C[2];
+
+            double Xangle = atan2(X, Z)*180/CV_PI;
+            double Yangle = atan2(Y, Z)*180/CV_PI;
+
+
+            if(Xangle < -fov_x/2 || Xangle > fov_x/2)
+                continue;
+
+            if(Yangle < -fov_y/2 || Yangle > fov_y/2)
+                continue;
+            objectPoints_L.push_back(cv::Point3d(pointCloud_L[0], pointCloud_L[1], pointCloud_L[2]));
+        }
+        Eigen::Matrix3d C_R_L = C_T_L.block(0, 0, 3, 3);
+        Eigen::Vector3d C_t_L = C_T_L.block(0, 3, 3, 1);
+
+        cv::Mat rvec, tvec, c_R_l;
+        cv::eigen2cv(C_R_L, c_R_l);
+        cv::Rodrigues(c_R_l, rvec);
+        cv::eigen2cv(C_t_L, tvec);
+        if(objectPoints_L.size() > 0)
+            cv::projectPoints(objectPoints_L, rvec, tvec, K, D, imagePoints, cv::noArray());
+        else
+            ROS_ERROR("objectPoints_L.size() <= 0");
+        return imagePoints;
+    }
+
+    double distanceFromLine(cv::Vec3f eqn, cv::Point2f pt) {
+        float a = eqn(0);
+        float b = eqn(1);
+        float c = eqn(2);
+        float x_0 = pt.x;
+        float y_0 = pt.y;
+        double dist = fabs(a*x_0+b*y_0+c)/sqrt(a*a+b*b);
+    }
+
+    double getReprojectionError(Eigen::MatrixXd C_T_L) {
+        double dist_avg = 0;
+        for (int i = 0; i < lidar_img_line_data.size(); i++) {
+            pcl::PointCloud<pcl::PointXYZ> line_1_pcl = lidar_img_line_data[i].line_cloud1;
+            pcl::PointCloud<pcl::PointXYZ> line_2_pcl = lidar_img_line_data[i].line_cloud2;
+            pcl::PointCloud<pcl::PointXYZ> line_3_pcl = lidar_img_line_data[i].line_cloud3;
+            pcl::PointCloud<pcl::PointXYZ> line_4_pcl = lidar_img_line_data[i].line_cloud4;
+            cv::Vec3f line1 = lidar_img_line_data[i].line_image1;
+            cv::Vec3f line2 = lidar_img_line_data[i].line_image2;
+            cv::Vec3f line3 = lidar_img_line_data[i].line_image3;
+            cv::Vec3f line4 = lidar_img_line_data[i].line_image4;
+
+            std::vector<cv::Point2d> imagePts1 = getProjectedPts(line_1_pcl, C_T_L);
+            std::vector<cv::Point2d> imagePts2 = getProjectedPts(line_2_pcl, C_T_L);
+            std::vector<cv::Point2d> imagePts3 = getProjectedPts(line_3_pcl, C_T_L);
+            std::vector<cv::Point2d> imagePts4 = getProjectedPts(line_4_pcl, C_T_L);
+
+            double distance1 = 0;
+            for(int i = 0; i < imagePts1.size(); i++){
+                distance1 += distanceFromLine(line1, imagePts1[i]);
+            }
+            distance1 = distance1/imagePts1.size();
+
+            double distance2 = 0;
+            for(int i = 0; i < imagePts2.size(); i++){
+                distance2 += distanceFromLine(line2, imagePts2[i]);
+            }
+            distance2 = distance2/imagePts2.size();
+
+            double distance3 = 0;
+            for(int i = 0; i < imagePts3.size(); i++){
+                distance3 += distanceFromLine(line3, imagePts3[i]);
+            }
+            distance3 = distance3/imagePts3.size();
+
+            double distance4 = 0;
+            for(int i = 0; i < imagePts4.size(); i++){
+                distance4 += distanceFromLine(line4, imagePts4[i]);
+            }
+            distance4 = distance4/imagePts4.size();
+
+            dist_avg += (distance1 + distance2 + distance3 + distance4)/4;
+        }
+        return dist_avg/lidar_img_line_data.size();
+    }
+
     void solvePlaneOptimization() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 100;
+        int no_of_diff_initializations = 1;
         for (int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
@@ -291,10 +477,16 @@ public:
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
             ROS_INFO_STREAM("Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+            Eigen::MatrixXd C_T_L(3, 4);
+            C_T_L.block(0, 0, 3, 3) = Rotn;
+            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+            double reprojection_error = getReprojectionError(C_T_L);
             init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
                       << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
             res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
-                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "\n";
+                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << reprojection_error << "\n";
+            ROS_WARN_STREAM("Line reprojerror: " << reprojection_error);
         }
         init_file.close();
         res_file.close();
@@ -398,10 +590,16 @@ public:
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
             ROS_INFO_STREAM("Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+            Eigen::MatrixXd C_T_L(3, 4);
+            C_T_L.block(0, 0, 3, 3) = Rotn;
+            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+            double reprojection_error = getReprojectionError(C_T_L);
             init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
                       << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
             res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
-                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "\n";
+                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << reprojection_error << "\n";
+            ROS_WARN_STREAM("Line reprojerror: " << reprojection_error);
         }
         init_file.close();
         res_file.close();
@@ -529,10 +727,16 @@ public:
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
             ROS_INFO_STREAM("Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+            Eigen::MatrixXd C_T_L(3, 4);
+            C_T_L.block(0, 0, 3, 3) = Rotn;
+            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+            double reprojection_error = getReprojectionError(C_T_L);
             init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
                       << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
             res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
-                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "\n";
+                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << reprojection_error << "\n";
+            ROS_WARN_STREAM("Line reprojerror: " << reprojection_error);
         }
         init_file.close();
         res_file.close();
@@ -542,7 +746,7 @@ public:
     void solvePlaneThenLine() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 100;
+        int no_of_diff_initializations = 10;
         for(int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
@@ -666,10 +870,16 @@ public:
             ceres::Solve(options2, &problem2, &summary2);
             tend = time(0);
             ROS_INFO_STREAM("Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+            Eigen::MatrixXd C_T_L(3, 4);
+            C_T_L.block(0, 0, 3, 3) = Rotn;
+            C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+            double reprojection_error = getReprojectionError(C_T_L);
             init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
                       << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
             res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
-                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "\n";
+                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << reprojection_error << "\n";
+            ROS_WARN_STREAM("Line reprojerror: " << reprojection_error);
         }
         init_file.close();
         res_file.close();
@@ -773,6 +983,75 @@ public:
         }
     }
 
+    cv::Vec3f getEqnOfLine(cv::Vec4f line) {
+        double x_a = line[0];
+        double y_a = line[1];
+        double x_b = line[2];
+        double y_b = line[3];
+
+        if(x_a == y_a && x_b == y_b) {
+            return cv::Vec3f(0, 0, 0);
+        } else if(x_a == x_b) {
+            // eqn: x = x_a or x = x_b
+            return cv::Vec3f(1, 0, -x_a);
+        } else if(y_a == y_b){
+            // eqn: y = y_a or y = y_b
+            return cv::Vec3f(0, 1, -y_a);
+        } else {
+            double m = (y_b - y_a)/(x_b - x_a);
+            double a = m;
+            double b = -1;
+            double c = y_a - m*x_a;
+            return cv::Vec3f(a, b, c);
+        }
+    }
+
+    void callbackImageAndLidarLines(const line_msg::lineConstPtr& line1_img_msg,
+                                    const line_msg::lineConstPtr& line2_img_msg,
+                                    const line_msg::lineConstPtr& line3_img_msg,
+                                    const line_msg::lineConstPtr& line4_img_msg,
+                                    const sensor_msgs::PointCloud2ConstPtr& line1_cloud_msg,
+                                    const sensor_msgs::PointCloud2ConstPtr& line2_cloud_msg,
+                                    const sensor_msgs::PointCloud2ConstPtr& line3_cloud_msg,
+                                    const sensor_msgs::PointCloud2ConstPtr& line4_cloud_msg) {
+        ROS_WARN_STREAM("Callback for image and lidar lines");
+        cv::Point2f line1_start = cv::Point2f(line1_img_msg->a1, line1_img_msg->b1);
+        cv::Point2f line1_end = cv::Point2f(line1_img_msg->a2, line1_img_msg->b2);
+        cv::Point2f line2_start = cv::Point2f(line2_img_msg->a1, line2_img_msg->b1);
+        cv::Point2f line2_end = cv::Point2f(line2_img_msg->a2, line2_img_msg->b2);
+        cv::Point2f line3_start = cv::Point2f(line3_img_msg->a1, line3_img_msg->b1);
+        cv::Point2f line3_end = cv::Point2f(line3_img_msg->a2, line3_img_msg->b2);
+        cv::Point2f line4_start = cv::Point2f(line4_img_msg->a1, line4_img_msg->b1);
+        cv::Point2f line4_end = cv::Point2f(line4_img_msg->a2, line4_img_msg->b2);
+
+        pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
+        pcl::fromROSMsg(*line1_cloud_msg, line_1_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_2_pcl;
+        pcl::fromROSMsg(*line2_cloud_msg, line_2_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_3_pcl;
+        pcl::fromROSMsg(*line3_cloud_msg, line_3_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_4_pcl;
+        pcl::fromROSMsg(*line4_cloud_msg, line_4_pcl);
+
+        cv::Vec3f line1 = getEqnOfLine(cv::Vec4f(line1_start.x, line1_start.y, line1_end.x, line1_end.y));
+        cv::Vec3f line2 = getEqnOfLine(cv::Vec4f(line2_start.x, line2_start.y, line2_end.x, line2_end.y));
+        cv::Vec3f line3 = getEqnOfLine(cv::Vec4f(line3_start.x, line3_start.y, line3_end.x, line3_end.y));
+        cv::Vec3f line4 = getEqnOfLine(cv::Vec4f(line4_start.x, line4_start.y, line4_end.x, line4_end.y));
+
+        cloudAndImageLine data;
+        data.line_cloud1 = line_1_pcl;
+        data.line_cloud2 = line_2_pcl;
+        data.line_cloud3 = line_3_pcl;
+        data.line_cloud4 = line_4_pcl;
+        data.line_image1 = line1;
+        data.line_image2 = line2;
+        data.line_image3 = line3;
+        data.line_image4 = line4;
+
+        lidar_img_line_data.push_back(data);
+        ROS_WARN_STREAM("No of lidar image line pars collected: " << lidar_img_line_data.size());
+    }
+
     void checkStatus() {
         ROS_WARN_STREAM("At Check Status");
         bool lineOnlyCond = !usePlane && useLines && no_of_line_views >= max_no_of_line_views;
@@ -801,6 +1080,7 @@ public:
         } else {
             ROS_INFO_STREAM("No of line views: " << no_of_line_views);
             ROS_INFO_STREAM("No of plane views: " << no_of_plane_views);
+            ROS_INFO_STREAM("No of lidar image line pairs collected: " << lidar_img_line_data.size());
         }
     }
 
