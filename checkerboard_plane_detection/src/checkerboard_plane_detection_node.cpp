@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
@@ -36,6 +37,10 @@ private:
     // Plane detection RANSAC param
     double ransac_threshold;
 
+    int view_no;
+    std::ofstream points3d_file;
+    std::string points3d_file_name;
+
 public:
     chkrbrdPlaneDetector() {
         cloud_sub = nh.subscribe("/cloud_in", 1,
@@ -50,6 +55,8 @@ public:
         z_max = readParam<double>(nh, "z_max");
 
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
+        view_no = 0;
+        points3d_file_name = readParam<std::string>(nh, "points3d_file_name");
     }
 
     template <typename T>
@@ -65,6 +72,7 @@ public:
     }
 
     void callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
+        view_no++;
         pcl::PointCloud<pcl::PointXYZI>::Ptr
                                 cloud_in(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromROSMsg(*cloud_msg, *cloud_in);
@@ -121,6 +129,18 @@ public:
         cloud_out_ros.header.stamp = cloud_msg->header.stamp;
         cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
         cloud_pub.publish(cloud_out_ros);
+        if (view_no==75) {
+
+            points3d_file.open(points3d_file_name.c_str());
+            for(int i = 0; i < plane->points.size(); i++) {
+                double X = plane->points[i].x;
+                double Y = plane->points[i].y;
+                double Z = plane->points[i].z;
+                points3d_file << X << "," << Y << "," << Z << "\n";
+            }
+            ROS_WARN_STREAM("Collected Data..");
+            points3d_file.close();
+        }
     }
 };
 

@@ -11,6 +11,7 @@
   <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="false"/>
 
+  <param name = "no_of_diff_initializations" value="50"/>
   <param name ="cam_config_file_path"
          value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
   <param name = "result_str" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>

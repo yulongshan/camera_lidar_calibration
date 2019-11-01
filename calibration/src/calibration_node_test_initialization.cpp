@@ -137,6 +137,7 @@ private:
     std::ofstream init_file;
     std::ofstream res_file;
 
+    int no_of_diff_initializations;
 public:
     calib() {
         line1_sub = new
@@ -268,6 +269,7 @@ public:
 
         initializations_file = readParam<std::string>(nh, "initializations_file");
         results_file = readParam<std::string>(nh, "results_file");
+        no_of_diff_initializations = readParam<int>(nh, "no_of_diff_initializations");
     }
 
     template <typename T>
@@ -431,7 +433,6 @@ public:
     void solvePlaneOptimization() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 1;
         for (int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
@@ -496,7 +497,6 @@ public:
     void solveLineOptimization() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 100;
         for (int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
@@ -609,7 +609,6 @@ public:
     void solvePlaneAndLineJointly() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 100;
         for (int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
@@ -746,7 +745,6 @@ public:
     void solvePlaneThenLine() {
         init_file.open(initializations_file);
         res_file.open(results_file);
-        int no_of_diff_initializations = 10;
         for(int i = 0; i < no_of_diff_initializations; i++) {
             time_t tstart, tend;
             tstart = time(0);
