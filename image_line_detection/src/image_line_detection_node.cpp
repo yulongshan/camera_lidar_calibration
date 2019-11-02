@@ -47,7 +47,7 @@ ros::Publisher line_pub_rb;
 ros::Publisher line_pub_lb;
 
 std_msgs::Header global_header;
-
+int view_no;
 template <typename T>
 T readParam(ros::NodeHandle &n, std::string name)
 {
@@ -190,6 +190,7 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
                                  cv::Point2f pt2,
                                  cv::Point2f pt3,
                                  cv::Point2f pt4) {
+    ROS_WARN_STREAM("At getPose");
     std::vector<cv::Point2f> imagePoints;
     imagePoints.push_back(pt1);
     imagePoints.push_back(pt2);
@@ -274,6 +275,12 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     tvec_plane.c = tvec.at<double>(2);
     tvec_plane.w = traceRT(1);
     tvec_pub_chkrbrd.publish(tvec_plane);
+
+    if(view_no == 151) {
+        ROS_WARN_STREAM("View recorded!!");
+        std::cout << "C_R_W " << "\n" << C_R_W << std::endl;
+        std::cout << "C_t_W " << "\n" << tvec << std::endl << std::endl;
+    }
 
     return imagePoints_proj;
 }
@@ -565,6 +572,7 @@ void detectLines(cv::Mat image_in) {
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+    view_no++;
     try{
         global_header.stamp = msg->header.stamp;
         detectLines(cv_bridge::toCvShare(msg, "bgr8")->image);
