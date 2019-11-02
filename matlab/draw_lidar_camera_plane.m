@@ -42,6 +42,11 @@ axis equal
 grid;
 xlim([0, 2]);
 ylim([-0.5, 1]);
+set(gca, 'FontName', 'Arial');
+set(gca, 'FontSize', 25);
+set(gca, 'FontWeight', 'bold');
+ylabel('Label Y axis')
+xlabel('Label X axis')
 xlabel('x axis');
 ylabel('y axis');
 zlabel('z axis');
