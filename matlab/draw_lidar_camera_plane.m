@@ -11,6 +11,7 @@ yPE = point3dPEdges(:, 2);
 zPE = point3dPEdges(:, 3);
 
 figure(1)
+subplot(121)
 plot3(xP, yP, zP, '.', 'LineWidth',2,...
     'MarkerSize',10,...
     'MarkerEdgeColor','b',...
@@ -43,15 +44,15 @@ axis equal
 grid;
 xlim([0, 2]);
 ylim([-0.5, 1]);
+zlim([-0.6, 0.6]);
 set(gca, 'FontName', 'Arial');
-set(gca, 'FontSize', 25);
+set(gca, 'FontSize', 20);
 set(gca, 'FontWeight', 'bold');
 ylabel('Label Y axis')
 xlabel('Label X axis')
 xlabel('x axis');
 ylabel('y axis');
 zlabel('z axis');
-
 %%
 
 C_R_W = [-0.6873012813551714, 0.7211890857465928, -0.08662130943095533;
@@ -76,7 +77,7 @@ fx = 6.4372590342756985e+02;
 fy = 6.4372590342756985e+02;
 cx = 3.9534097290039062e+02;
 cy = 3.0199901199340820e+02;
-K = [fx, 0, cx; 0, fy, cy; 0, 0, 1];
+K = [fx, 0, cx; 0, fy, cy; 0, 0, 1]
 objectPts_C = C1_T_C*C_T_W*objectPts_W;
 objectPts_C = objectPts_C(1:3, 1:4)
 
@@ -94,8 +95,9 @@ objectPts_C = [objectPts_C; objectPts_C(1, :)];
 x = objectPts_C(:, 1);
 y = objectPts_C(:, 2);
 z = objectPts_C(:, 3);
-figure(2)
-plot3(x, y, z, 'LineWidth', 4, 'b');
+
+subplot(122)
+plot3(x, y, z, 'LineWidth', 4, 'r');
 hold on;
 origin = [0, 0, 0];
 x =[0.2, 0, 0];
@@ -114,47 +116,76 @@ hold on;
 plot3(orig_pt1(:, 1), 
       orig_pt1(:, 2), 
       orig_pt1(:, 3), 
-      'LineWidth', 5, 'c-.');
+      'LineWidth', 2, 'c-.');
 hold on;
 plot3(orig_pt2(:, 1), 
       orig_pt2(:, 2), 
       orig_pt2(:, 3), 
-      'LineWidth', 5, 'c-.');
-      hold on;
+      'LineWidth', 2, 'c-.');
+hold on;
 plot3(orig_pt3(:, 1), 
       orig_pt3(:, 2), 
       orig_pt3(:, 3), 
-      'LineWidth', 5, 'c-.');
-      hold on;
+      'LineWidth', 2, 'c-.');
+hold on;
 plot3(orig_pt4(:, 1), 
       orig_pt4(:, 2), 
       orig_pt4(:, 3), 
-      'LineWidth', 5, 'c-.');
-hold off;
+      'LineWidth', 2, 'c-.');
+hold on;
+a = 0.4;
+b = 0.25;
+d = 0.5;
+rect_plane = [d,  a,  b;
+              d, -a,  b;
+              d, -a, -b;
+              d,  a, -b;
+              d,  a,  b];
+plot3(rect_plane(:, 1), 
+      rect_plane(:, 2), 
+      rect_plane(:, 3), 
+      'LineWidth', 5, 'k');
+hold on;          
 axis equal;
 grid;
-xlim([0, 2]);
-ylim([-0.5, 0.6]);
-zlim([-0.4, 0.6]);
+X1 = objectPts_C(1, 1); Y1 = objectPts_C(1, 2); Z1 = objectPts_C(1, 3);
+X2 = objectPts_C(2, 1); Y2 = objectPts_C(2, 2); Z2 = objectPts_C(2, 3);
+X3 = objectPts_C(3, 1); Y3 = objectPts_C(3, 2); Z3 = objectPts_C(3, 3);
+X4 = objectPts_C(4, 1); Y4 = objectPts_C(4, 2); Z4 = objectPts_C(4, 3);
 
+x1 = d; y1 = (Y1/X1)*d; z1 = (Z1/X1)*d;
+x2 = d; y2 = (Y2/X2)*d; z2 = (Z2/X2)*d;
+x3 = d; y3 = (Y3/X3)*d; z3 = (Z3/X3)*d;
+x4 = d; y4 = (Y4/X4)*d; z4 = (Z4/X4)*d;
+
+objectPts_imgPlane = [x1, y1, z1; 
+                      x2, y2, z2;
+                      x3, y3, z3;
+                      x4, y4, z4;
+                      x1, y1, z1];
+plot3(objectPts_imgPlane(:,1), 
+      objectPts_imgPlane(:,2), 
+      objectPts_imgPlane(:,3),'-', 
+      'LineWidth',2,...
+      'MarkerSize',10,...
+      'MarkerEdgeColor','b',...
+      'MarkerFaceColor',[0.5,0.5,0.5]);
+hold off;
+xlim([0, 2]);
+ylim([-0.5, 1]);
+zlim([-0.6, 0.6]);
+set(gca, 'FontName', 'Arial');
+set(gca, 'FontSize', 20);
+set(gca, 'FontWeight', 'bold');
+ylabel('Label Y axis')
+xlabel('Label X axis')
 xlabel('z axis');
 ylabel('x axis');
 zlabel('y axis');
 
-%% 
-pixel_values = K*C_T_W(1:3, 1:4)*objectPts_W;
-pixel_values = pixel_values./pixel_values(3,:)
 
-u = pixel_values(1, :);
-v = pixel_values(2, :);
 
-u = [u, u(1)];
-v = [v, v(1)];
-figure(3)
-plot(u, -v, 'LineWidth', 5, 'b')
-axis equal;
-xlim([0, 800]);
-ylim([0, -592]);
+
 
 
           
