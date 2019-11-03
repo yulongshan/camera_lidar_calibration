@@ -10,7 +10,7 @@ xPE = point3dPEdges(:, 1);
 yPE = point3dPEdges(:, 2);
 zPE = point3dPEdges(:, 3);
 
-subplot(211)
+figure(1)
 plot3(xP, yP, zP, '.', 'LineWidth',2,...
     'MarkerSize',10,...
     'MarkerEdgeColor','b',...
@@ -78,14 +78,23 @@ cx = 3.9534097290039062e+02;
 cy = 3.0199901199340820e+02;
 K = [fx, 0, cx; 0, fy, cy; 0, 0, 1];
 objectPts_C = C1_T_C*C_T_W*objectPts_W;
-objectPts_C = objectPts_C(1:3, 1:4);
+objectPts_C = objectPts_C(1:3, 1:4)
+
+orig_pt1 = [0, 0, 0; 
+            objectPts_C(:,1)'];
+orig_pt2 = [0, 0, 0; 
+            objectPts_C(:,2)'];
+orig_pt3 = [0, 0, 0; 
+            objectPts_C(:,3)'];
+orig_pt4 = [0, 0, 0; 
+            objectPts_C(:,4)'];
 
 objectPts_C = objectPts_C'
 objectPts_C = [objectPts_C; objectPts_C(1, :)];
 x = objectPts_C(:, 1);
 y = objectPts_C(:, 2);
 z = objectPts_C(:, 3);
-subplot(212)
+figure(2)
 plot3(x, y, z, 'LineWidth', 4, 'b');
 hold on;
 origin = [0, 0, 0];
@@ -102,12 +111,32 @@ plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'r')
 hold on;
 plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'g');
 hold on;
-
+plot3(orig_pt1(:, 1), 
+      orig_pt1(:, 2), 
+      orig_pt1(:, 3), 
+      'LineWidth', 5, 'c-.');
+hold on;
+plot3(orig_pt2(:, 1), 
+      orig_pt2(:, 2), 
+      orig_pt2(:, 3), 
+      'LineWidth', 5, 'c-.');
+      hold on;
+plot3(orig_pt3(:, 1), 
+      orig_pt3(:, 2), 
+      orig_pt3(:, 3), 
+      'LineWidth', 5, 'c-.');
+      hold on;
+plot3(orig_pt4(:, 1), 
+      orig_pt4(:, 2), 
+      orig_pt4(:, 3), 
+      'LineWidth', 5, 'c-.');
+hold off;
 axis equal;
 grid;
 xlim([0, 2]);
 ylim([-0.5, 0.6]);
 zlim([-0.4, 0.6]);
+
 xlabel('z axis');
 ylabel('x axis');
 zlabel('y axis');
