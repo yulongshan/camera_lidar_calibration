@@ -87,3 +87,8 @@ hold off;
 xlabel('experiment no', 'FontSize',12,'FontWeight','bold','Color','r');
 ylabel('t_z', 'FontSize',20,'FontWeight','bold','Color','r');
 grid;
+
+mean_reprojerr = mean(reproj_errs(find(isnan(reproj_errs) ~= 1)))
+mode_reprojerr = mode(reproj_errs(find(isnan(reproj_errs) ~= 1)))
+median_reprojerr = median(reproj_errs(find(isnan(reproj_errs) ~= 1)))
+range_reprojerr = range(reproj_errs(find(isnan(reproj_errs) ~= 1)))
