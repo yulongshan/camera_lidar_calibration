@@ -2,8 +2,8 @@
 <launch>
 
   <param name = "/use_sim_time" value="true"/>
-  <param name = "max_no_of_plane_views" value="13"/>
-  <param name = "max_no_of_line_views" value="24"/>
+  <param name = "max_no_of_plane_views" value="15"/>
+  <param name = "max_no_of_line_views" value="25"/>
   <param name = "initializeR" value="false"/>
 
   <param name = "usePlane" value="true"/>
@@ -13,10 +13,10 @@
 
   <param name = "no_of_diff_initializations" value="1"/>
   <param name ="cam_config_file_path"
-         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
-  <param name = "result_str" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
-  <param name = "initializations_file" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/matlab/initializations.csv"/>
-  <param name = "results_file" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/matlab/results.csv"/>
+         value="/home/usl/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
+  <param name = "result_str" value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
+  <param name = "initializations_file" value="/home/usl/catkin_ws/src/camera_lidar_calibration/matlab/initializations.csv"/>
+  <param name = "results_file" value="/home/usl/catkin_ws/src/camera_lidar_calibration/matlab/results.csv"/>
   <node  pkg = "calibration" name="calibration_node_test_initialization_node" type="calibration_node_test_initialization_node" output="screen">
   </node>
 

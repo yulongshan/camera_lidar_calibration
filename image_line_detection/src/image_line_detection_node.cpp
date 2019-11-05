@@ -48,6 +48,7 @@ ros::Publisher line_pub_lb;
 
 std_msgs::Header global_header;
 int view_no;
+int line_length_threshold;
 template <typename T>
 T readParam(ros::NodeHandle &n, std::string name)
 {
@@ -326,14 +327,20 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
 
     double dist02 = getDistance(lines_ordered[0], lines_ordered[2]);
     double dist13 = getDistance(lines_ordered[1], lines_ordered[3]);
+    ROS_WARN_STREAM("Angle 1: " << angle1);
+    ROS_WARN_STREAM("Angle 2: " << angle2);
+    ROS_WARN_STREAM("Angle 3: " << angle3);
+    ROS_WARN_STREAM("Angle 4: " << angle4);
+    ROS_WARN_STREAM("dist 02: " << dist02);
+    ROS_WARN_STREAM("dist 13: " << dist13);
 
     if(angle1 > 50 &&
         angle2 > 50 &&
             angle3 > 50 &&
                 angle4 > 50 &&
-                    dist02 > 150 &&
-                        dist13 > 150) {
-
+                    dist02 > 150 && dist02 < 300 &&
+                        dist13 > 150 && dist13 < 300) {
+        ROS_WARN_STREAM("Publishing Lines...");
         cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
         cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
         cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
@@ -544,7 +551,6 @@ void labelLines(char axis) {
 void detectLines(cv::Mat image_in) {
     cv::Mat image_gray;
     cv::cvtColor(image_in, image_gray, CV_RGB2GRAY);
-    int length_threshold = 100;
     float distance_threshold = 1.41421356f;
 //    float distance_threshold = 1;
     double canny_th1 = 200.0;
@@ -552,7 +558,7 @@ void detectLines(cv::Mat image_in) {
     int canny_aperture_size = 3;
     bool do_merge = true;
     cv::Ptr<cv::ximgproc::FastLineDetector> fld =
-            cv::ximgproc::createFastLineDetector(length_threshold,
+            cv::ximgproc::createFastLineDetector(line_length_threshold,
                                                      distance_threshold,
                                                      canny_th1, canny_th2,
                                                      canny_aperture_size,
@@ -585,6 +591,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "image_line_detector");
     ros::NodeHandle nh;
     cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
+    line_length_threshold = readParam<int>(nh, "line_length_threshold");
     readCameraParams();
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
