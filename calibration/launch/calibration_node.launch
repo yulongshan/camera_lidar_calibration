@@ -8,7 +8,7 @@
 
   <param name = "usePlane" value="true"/>
   <param name = "useLines" value="true"/>
-  <param name = "jointSol" value="true"/>
+  <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="false"/>
 
   <param name = "result_str" value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>

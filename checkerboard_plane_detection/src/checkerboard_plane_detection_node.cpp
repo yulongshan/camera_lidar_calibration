@@ -33,7 +33,7 @@ private:
     double x_min, x_max;
     double y_min, y_max;
     double z_min, z_max;
-
+    int min_pts;
     // Plane detection RANSAC param
     double ransac_threshold;
 
@@ -53,7 +53,7 @@ public:
         y_max = readParam<double>(nh, "y_max");
         z_min = readParam<double>(nh, "z_min");
         z_max = readParam<double>(nh, "z_max");
-
+        min_pts = readParam<int>(nh, "min_pts");
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
         view_no = 0;
         points3d_file_name = readParam<std::string>(nh, "points3d_file_name");
@@ -125,10 +125,14 @@ public:
 //        Eigen::Vector3f normal = Eigen::Vector3f(plane_coeff(0), plane_coeff(1), plane_coeff(2));
         // Publish detected plane
         sensor_msgs::PointCloud2 cloud_out_ros;
-        pcl::toROSMsg(*plane, cloud_out_ros);
-        cloud_out_ros.header.stamp = cloud_msg->header.stamp;
-        cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
-        cloud_pub.publish(cloud_out_ros);
+        ROS_WARN_STREAM("No of planar points: " << plane->points.size());
+        if(plane->points.size() > min_pts) {
+            pcl::toROSMsg(*plane, cloud_out_ros);
+            cloud_out_ros.header.stamp = cloud_msg->header.stamp;
+            cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
+            cloud_pub.publish(cloud_out_ros);
+
+        }
         if (view_no==75) {
 
             points3d_file.open(points3d_file_name.c_str());

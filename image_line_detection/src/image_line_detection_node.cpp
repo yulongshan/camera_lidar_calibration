@@ -190,7 +190,6 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
                                  cv::Point2f pt2,
                                  cv::Point2f pt3,
                                  cv::Point2f pt4) {
-    ROS_WARN_STREAM("At getPose");
     std::vector<cv::Point2f> imagePoints;
     imagePoints.push_back(pt1);
     imagePoints.push_back(pt2);
