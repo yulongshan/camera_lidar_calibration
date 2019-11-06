@@ -26,7 +26,7 @@ double fx, fy, cx, cy;
 double k1, k2, p1, p2;
 int image_width, image_height;
 std::string cam_config_file_path;
-
+double side_len;
 struct labelledLine {
     cv::Vec4f line;
     double slope;
@@ -47,7 +47,8 @@ ros::Publisher line_pub_rb;
 ros::Publisher line_pub_lb;
 
 std_msgs::Header global_header;
-int view_no;
+int view_no = 0;
+int line_no = 0;
 int line_length_threshold;
 template <typename T>
 T readParam(ros::NodeHandle &n, std::string name)
@@ -197,7 +198,6 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     imagePoints.push_back(pt3);
     imagePoints.push_back(pt4);
 
-    double side_len = 0.608;
     std::vector<cv::Point3f> objectPoints;
     objectPoints.push_back(cv::Point3f(0, 0, 0));
     objectPoints.push_back(cv::Point3f(0, side_len, 0));
@@ -340,7 +340,7 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                 angle4 > 50 &&
                     dist02 > 150 && dist02 < 300 &&
                         dist13 > 150 && dist13 < 300) {
-        ROS_WARN_STREAM("Publishing Lines...");
+        ROS_WARN_STREAM("Publishing Lines: " << ++line_no);
         cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
         cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
         cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
@@ -592,6 +592,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
     line_length_threshold = readParam<int>(nh, "line_length_threshold");
+    side_len = readParam<double>(nh, "side_len");
     readCameraParams();
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
