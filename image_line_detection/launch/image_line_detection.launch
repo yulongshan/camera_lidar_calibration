@@ -1,8 +1,0 @@
-<launch>
-        <param name ="/use_sim_time" value="true"/>
-        <param name ="cam_config_file_path" value="/home/usl/catkin_ws/src/camera_lidar_calibration/config/nerian_left_r_faccal.yaml"/>
-        <param name = "line_length_threshold" value="75"/>
-        <node pkg="image_line_detection" type="image_line_detection_node" name="image_line_detection" output="screen">
-              <remap from="/camera/image" to="/nerian_stereo/right_image"/>
-        </node>
-</launch>

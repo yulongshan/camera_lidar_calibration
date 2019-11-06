@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+  <param name ="/use_sim_time"
+         value="true"/>
+  <param name ="result_str"
+         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
+  <param name ="cam_config_file_path"
+         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_rect_faccal.yaml"/>
+
+  <node  pkg="projection" name="left_line_projection_node" type="line_projection_node" output="screen">
+	  <remap from="/image_in" to="/nerian_stereo/left_image"/>
+  </node>
+
+</launch>
