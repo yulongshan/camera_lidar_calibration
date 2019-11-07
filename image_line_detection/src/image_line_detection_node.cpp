@@ -50,6 +50,9 @@ std_msgs::Header global_header;
 int view_no = 0;
 int line_no = 0;
 int line_length_threshold;
+double canny_threshold;
+double draw_all_lines = true;
+double draw_best_lines = true;
 template <typename T>
 T readParam(ros::NodeHandle &n, std::string name)
 {
@@ -286,193 +289,196 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
 }
 
 void drawAndPublishLineSegments(cv::Mat image_in) {
-    ROS_ASSERT(lls.size() == 4);
-    std::vector<double> slopes_ordered(4);
-    std::vector<cv::Vec4f> lines_ordered(4);
-    normal_msg::normal n_lt; line_msg::line l_lt;
-    normal_msg::normal n_rt; line_msg::line l_rt;
-    normal_msg::normal n_rb; line_msg::line l_rb;
-    normal_msg::normal n_lb; line_msg::line l_lb;
-    for(size_t i = 0; i < 4; i++) {
-        char labelX = lls[i].labelX;
-        char labelY = lls[i].labelY;
-        if(labelX == 'l' && labelY == 't') {
-            slopes_ordered[0] = lls[i].slope;
-            lines_ordered[0] = lls[i].line;
-        }
-
-        if(labelX == 'r' && labelY == 't') {
-            slopes_ordered[1] = lls[i].slope;
-            lines_ordered[1] = lls[i].line;
-        }
-
-        if(labelX == 'r' && labelY == 'b') {
-            slopes_ordered[2] = lls[i].slope;
-            lines_ordered[2] = lls[i].line;
-        }
-
-        if(labelX == 'l' && labelY == 'b') {
-            slopes_ordered[3] = lls[i].slope;
-            lines_ordered[3] = lls[i].line;
-        }
-    }
-    double angle1 =
-            fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
-    double angle2 =
-            fabs(getAngle(slopes_ordered[1], slopes_ordered[2]))*180/M_PI;
-    double angle3 =
-            fabs(getAngle(slopes_ordered[2], slopes_ordered[3]))*180/M_PI;
-    double angle4 =
-            fabs(getAngle(slopes_ordered[3], slopes_ordered[0]))*180/M_PI;
-
-    double dist02 = getDistance(lines_ordered[0], lines_ordered[2]);
-    double dist13 = getDistance(lines_ordered[1], lines_ordered[3]);
-    ROS_WARN_STREAM("Angle 1: " << angle1);
-    ROS_WARN_STREAM("Angle 2: " << angle2);
-    ROS_WARN_STREAM("Angle 3: " << angle3);
-    ROS_WARN_STREAM("Angle 4: " << angle4);
-    ROS_WARN_STREAM("dist 02: " << dist02);
-    ROS_WARN_STREAM("dist 13: " << dist13);
-
-    if(angle1 > 50 &&
-        angle2 > 50 &&
-            angle3 > 50 &&
-                angle4 > 50 &&
-                    dist02 > 150 && dist02 < 300 &&
-                        dist13 > 150 && dist13 < 300) {
-        ROS_WARN_STREAM("Publishing Lines: " << ++line_no);
-        cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
-        cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
-        cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
-        cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
-        std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
-        cv::circle(image_in, pt1, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt2, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt3, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, pt4, 7,
-                   cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-
-        cv::circle(image_in, re_projected_pts[0], 7,
-                   cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[1], 7,
-                   cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[2], 7,
-                   cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
-        cv::circle(image_in, re_projected_pts[3], 7,
-                   cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
-
+    if(lls.size() == 4) {
+        std::vector<double> slopes_ordered(4);
+        std::vector<cv::Vec4f> lines_ordered(4);
+        normal_msg::normal n_lt; line_msg::line l_lt;
+        normal_msg::normal n_rt; line_msg::line l_rt;
+        normal_msg::normal n_rb; line_msg::line l_rb;
+        normal_msg::normal n_lb; line_msg::line l_lb;
         for(size_t i = 0; i < 4; i++) {
-            cv::Vec4f line_i = lls[i].line;
-
-            cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
-            cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
-            cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
-
-            cv::Scalar line_color = cv::Scalar(0, 0, 0);
-            line_color = cv::Scalar(255, 0, 0);
-            std::string line_txt;
-
             char labelX = lls[i].labelX;
             char labelY = lls[i].labelY;
-
             if(labelX == 'l' && labelY == 't') {
-                line_txt = "lt";
-                line_color = cv::Scalar(255, 0, 0);
                 slopes_ordered[0] = lls[i].slope;
-                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
-                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                n_lt.header.stamp = global_header.stamp;
-                n_lt.a = normal_eqn(0);
-                n_lt.b = normal_eqn(1);
-                n_lt.c = normal_eqn(2);
-                normal_pub_lt.publish(n_lt);
-
-                l_lt.header.stamp = global_header.stamp;
-                l_lt.a1 = lls[i].line(0);
-                l_lt.b1 = lls[i].line(1);
-                l_lt.a2 = lls[i].line(2);
-                l_lt.b2 = lls[i].line(3);
-                line_pub_lt.publish(l_lt);
+                lines_ordered[0] = lls[i].line;
             }
 
             if(labelX == 'r' && labelY == 't') {
-                line_txt = "rt";
-                line_color = cv::Scalar(0, 0, 255);
                 slopes_ordered[1] = lls[i].slope;
-                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
-                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                n_rt.header.stamp = global_header.stamp;
-                n_rt.a = normal_eqn(0);
-                n_rt.b = normal_eqn(1);
-                n_rt.c = normal_eqn(2);
-                normal_pub_rt.publish(n_rt);
-
-                l_rt.header.stamp = global_header.stamp;
-                l_rt.a1 = lls[i].line(0);
-                l_rt.b1 = lls[i].line(1);
-                l_rt.a2 = lls[i].line(2);
-                l_rt.b2 = lls[i].line(3);
-                line_pub_rt.publish(l_rt);
+                lines_ordered[1] = lls[i].line;
             }
 
             if(labelX == 'r' && labelY == 'b') {
-                line_txt = "rb";
-                line_color = cv::Scalar(255, 255, 0);
                 slopes_ordered[2] = lls[i].slope;
-                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
-                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                n_rb.header.stamp = global_header.stamp;
-                n_rb.a = normal_eqn(0);
-                n_rb.b = normal_eqn(1);
-                n_rb.c = normal_eqn(2);
-                normal_pub_rb.publish(n_rb);
-
-                l_rb.header.stamp = global_header.stamp;
-                l_rb.a1 = lls[i].line(0);
-                l_rb.b1 = lls[i].line(1);
-                l_rb.a2 = lls[i].line(2);
-                l_rb.b2 = lls[i].line(3);
-                line_pub_rb.publish(l_rb);
+                lines_ordered[2] = lls[i].line;
             }
 
             if(labelX == 'l' && labelY == 'b') {
-                line_txt = "lb";
-                line_color = cv::Scalar(0, 255, 0);
                 slopes_ordered[3] = lls[i].slope;
-                cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
-                cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                n_lb.header.stamp = global_header.stamp;
-                n_lb.a = normal_eqn(0);
-                n_lb.b = normal_eqn(1);
-                n_lb.c = normal_eqn(2);
-                normal_pub_lb.publish(n_lb);
-
-                l_lb.header.stamp = global_header.stamp;
-                l_lb.a1 = lls[i].line(0);
-                l_lb.b1 = lls[i].line(1);
-                l_lb.a2 = lls[i].line(2);
-                l_lb.b2 = lls[i].line(3);
-                line_pub_lb.publish(l_lb);
+                lines_ordered[3] = lls[i].line;
             }
-
-            cv::Scalar start_point_color = cv::Scalar(0, 255, 255);
-            cv::Scalar end_point_color = cv::Scalar(255, 0, 255);
-            cv::line(image_in, start_pt, end_pt, line_color, 2, cv::LINE_8);
-            cv::circle(image_in, start_pt, 3,
-                       start_point_color, cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, end_pt, 3,
-                       end_point_color, cv::FILLED, cv::LINE_8);
-            cv::putText(image_in,
-                        line_txt,
-                        mid_pt, cv::FONT_HERSHEY_DUPLEX,
-                        1, cv::Scalar(0, 143, 143), 2);
         }
+        double angle1 =
+                fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
+        double angle2 =
+                fabs(getAngle(slopes_ordered[1], slopes_ordered[2]))*180/M_PI;
+        double angle3 =
+                fabs(getAngle(slopes_ordered[2], slopes_ordered[3]))*180/M_PI;
+        double angle4 =
+                fabs(getAngle(slopes_ordered[3], slopes_ordered[0]))*180/M_PI;
+
+        double dist02 = getDistance(lines_ordered[0], lines_ordered[2]);
+        double dist13 = getDistance(lines_ordered[1], lines_ordered[3]);
+        ROS_WARN_STREAM("Angle 1: " << angle1);
+        ROS_WARN_STREAM("Angle 2: " << angle2);
+        ROS_WARN_STREAM("Angle 3: " << angle3);
+        ROS_WARN_STREAM("Angle 4: " << angle4);
+        ROS_WARN_STREAM("dist 02: " << dist02);
+        ROS_WARN_STREAM("dist 13: " << dist13);
+
+        if(angle1 > 50 &&
+           angle2 > 50 &&
+           angle3 > 50 &&
+           angle4 > 50 &&
+           dist02 > 150 && dist02 < 300 &&
+           dist13 > 150 && dist13 < 300) {
+            ROS_WARN_STREAM("Publishing Lines: " << ++line_no);
+            cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
+            cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
+            cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
+            cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
+            std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
+            cv::circle(image_in, pt1, 7,
+                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, pt2, 7,
+                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, pt3, 7,
+                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, pt4, 7,
+                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+
+            cv::circle(image_in, re_projected_pts[0], 7,
+                       cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, re_projected_pts[1], 7,
+                       cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, re_projected_pts[2], 7,
+                       cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
+            cv::circle(image_in, re_projected_pts[3], 7,
+                       cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
+
+            for(size_t i = 0; i < 4; i++) {
+                cv::Vec4f line_i = lls[i].line;
+
+                cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
+                cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
+                cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
+
+                cv::Scalar line_color = cv::Scalar(0, 0, 0);
+                line_color = cv::Scalar(255, 0, 0);
+                std::string line_txt;
+
+                char labelX = lls[i].labelX;
+                char labelY = lls[i].labelY;
+
+                if(labelX == 'l' && labelY == 't') {
+                    line_txt = "lt";
+                    line_color = cv::Scalar(255, 0, 0);
+                    slopes_ordered[0] = lls[i].slope;
+                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
+                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                    n_lt.header.stamp = global_header.stamp;
+                    n_lt.a = normal_eqn(0);
+                    n_lt.b = normal_eqn(1);
+                    n_lt.c = normal_eqn(2);
+                    normal_pub_lt.publish(n_lt);
+
+                    l_lt.header.stamp = global_header.stamp;
+                    l_lt.a1 = lls[i].line(0);
+                    l_lt.b1 = lls[i].line(1);
+                    l_lt.a2 = lls[i].line(2);
+                    l_lt.b2 = lls[i].line(3);
+                    line_pub_lt.publish(l_lt);
+                }
+
+                if(labelX == 'r' && labelY == 't') {
+                    line_txt = "rt";
+                    line_color = cv::Scalar(0, 0, 255);
+                    slopes_ordered[1] = lls[i].slope;
+                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
+                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                    n_rt.header.stamp = global_header.stamp;
+                    n_rt.a = normal_eqn(0);
+                    n_rt.b = normal_eqn(1);
+                    n_rt.c = normal_eqn(2);
+                    normal_pub_rt.publish(n_rt);
+
+                    l_rt.header.stamp = global_header.stamp;
+                    l_rt.a1 = lls[i].line(0);
+                    l_rt.b1 = lls[i].line(1);
+                    l_rt.a2 = lls[i].line(2);
+                    l_rt.b2 = lls[i].line(3);
+                    line_pub_rt.publish(l_rt);
+                }
+
+                if(labelX == 'r' && labelY == 'b') {
+                    line_txt = "rb";
+                    line_color = cv::Scalar(255, 255, 0);
+                    slopes_ordered[2] = lls[i].slope;
+                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
+                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                    n_rb.header.stamp = global_header.stamp;
+                    n_rb.a = normal_eqn(0);
+                    n_rb.b = normal_eqn(1);
+                    n_rb.c = normal_eqn(2);
+                    normal_pub_rb.publish(n_rb);
+
+                    l_rb.header.stamp = global_header.stamp;
+                    l_rb.a1 = lls[i].line(0);
+                    l_rb.b1 = lls[i].line(1);
+                    l_rb.a2 = lls[i].line(2);
+                    l_rb.b2 = lls[i].line(3);
+                    line_pub_rb.publish(l_rb);
+                }
+
+                if(labelX == 'l' && labelY == 'b') {
+                    line_txt = "lb";
+                    line_color = cv::Scalar(0, 255, 0);
+                    slopes_ordered[3] = lls[i].slope;
+                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
+                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                    n_lb.header.stamp = global_header.stamp;
+                    n_lb.a = normal_eqn(0);
+                    n_lb.b = normal_eqn(1);
+                    n_lb.c = normal_eqn(2);
+                    normal_pub_lb.publish(n_lb);
+
+                    l_lb.header.stamp = global_header.stamp;
+                    l_lb.a1 = lls[i].line(0);
+                    l_lb.b1 = lls[i].line(1);
+                    l_lb.a2 = lls[i].line(2);
+                    l_lb.b2 = lls[i].line(3);
+                    line_pub_lb.publish(l_lb);
+                }
+
+                cv::Scalar start_point_color = cv::Scalar(0, 255, 255);
+                cv::Scalar end_point_color = cv::Scalar(255, 0, 255);
+                cv::line(image_in, start_pt, end_pt, line_color, 2, cv::LINE_8);
+                cv::circle(image_in, start_pt, 3,
+                           start_point_color, cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, end_pt, 3,
+                           end_point_color, cv::FILLED, cv::LINE_8);
+                cv::putText(image_in,
+                            line_txt,
+                            mid_pt, cv::FONT_HERSHEY_DUPLEX,
+                            1, cv::Scalar(0, 143, 143), 2);
+            }
+        }
+        cv::imshow("view", image_in);
+        cv::waitKey(1);
+    } else {
+        ROS_WARN_STREAM("Less than 4 valid points..");
     }
-    cv::imshow("view", image_in);
-    cv::waitKey(1);
 }
 
 double getSlope(cv::Vec4f line) {
@@ -486,65 +492,121 @@ double getSlope(cv::Vec4f line) {
     return m;
 }
 
-void chooseBestLines(std::vector<cv::Vec4f> lines) {
+
+
+void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
     lls.clear();
+    std::vector<cv::Vec4f> angle_filtered_lines;
     std::vector<cv::Vec4f> best_lines;
-    std::vector<std::pair<double, int>> lengths(lines.size());
-    for(size_t i = 0; i < lines.size(); i++) {
+    std::vector<std::pair<double, int>> lengths;
+    size_t i;
+    size_t j = 0;
+
+    for(i = 0; i < lines.size(); i++) {
         cv::Vec4f line_i = lines[i];
 
         cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
         cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
 
+        double x_start = start_pt.x;
+        double y_start = start_pt.y;
+
+        double x_end = end_pt.x;
+        double y_end = end_pt.y;
+
+        double angle_rad = atan2(y_end - y_start, x_end - x_start);
+        double angle_deg = angle_rad*180/M_PI;
+        double angle_eps = 30;
+        if(fabs(angle_deg - 90) < angle_eps)
+            continue;
+        if(fabs(angle_deg + 90) < angle_eps)
+            continue;
+        if(fabs(angle_deg) < angle_eps)
+            continue;
+        if(fabs(angle_deg-180) < angle_eps)
+            continue;
+        if(fabs(angle_deg+180) < angle_eps)
+            continue;
         double length = cv::norm(start_pt-end_pt);
-        lengths.push_back(std::make_pair(length, i));
+        std::cout << "Slope: " << angle_deg << std::endl;
+        lengths.push_back(std::make_pair(length, j++));
+        angle_filtered_lines.push_back(line_i);
     }
-    std::sort(lengths.begin(), lengths.end(),
-            std::greater<std::pair<double, int>>());
-    // Pick the 4 best lines
-    for (int i = 0; i < 4; i++) {
-        labelledLine ll;
-        ll.line = lines[lengths[i].second];
-        ll.slope = getSlope(ll.line);
-        lls.push_back(ll);
-        best_lines.push_back(lines[lengths[i].second]);
+
+    std::cout << angle_filtered_lines.size() << "\t" << lengths.size() << std::endl;
+    if(lengths.size() >= 4) {
+        std::sort(lengths.begin(), lengths.end(),
+                  std::greater<std::pair<double, int>>());
+        // Pick the 4 best lines
+        cv::Mat image_best_lines = image_in.clone();
+        for (int i = 0; i < 4; i++) {
+            labelledLine ll;
+            ll.line = angle_filtered_lines[lengths[i].second];
+            ll.slope = getSlope(ll.line);
+            lls.push_back(ll);
+            best_lines.push_back(angle_filtered_lines[lengths[i].second]);
+            cv::Vec4f line_i = angle_filtered_lines[lengths[i].second];
+            cv::line(image_best_lines,
+                     cv::Point2f(line_i[0], line_i[1]),
+                     cv::Point2f(line_i[2], line_i[3]),
+                     cv::Scalar(0, 255, 0),
+                     2, cv::LINE_8);
+            cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
+            cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
+
+            double x_start = start_pt.x;
+            double y_start = start_pt.y;
+
+            double x_end = end_pt.x;
+            double y_end = end_pt.y;
+
+            double angle_rad = atan2(y_end - y_start, x_end - x_start);
+            double angle_deg = angle_rad*180/M_PI;
+            std::cout << "Slope: " << angle_deg << std::endl;
+
+        }
+        cv::imshow("image_best_lines", image_best_lines);
+        cv::waitKey(1);
     }
 }
 
 void labelLines(char axis) {
-    ROS_ASSERT(lls.size() == 4);
-    std::vector<cv::Vec4f> sorted_lines;
-    std::vector<std::pair<double, int>> dists_of_midpt;
-    for(int i = 0; i < 4; i++) {
-        cv::Vec4f line_i = lls[i].line;
-        cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
-        cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
-        cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
-        if(axis == 'x')
-            dists_of_midpt.push_back(std::make_pair(mid_pt.x, i));
-        else if(axis == 'y')
-            dists_of_midpt.push_back(std::make_pair(mid_pt.y, i));
-        else
-            ROS_ASSERT(axis == 'x' || axis == 'y');
-    }
-    ROS_ASSERT(dists_of_midpt.size() == 4);
-    std::sort(dists_of_midpt.begin(),
-              dists_of_midpt.end(),
-              std::greater<std::pair<double, int>>());
-    for (int i = 0; i < 4; i++) {
-        if(axis == 'x') {
-            if(i <= 1)
-                lls[dists_of_midpt[i].second].labelX = 'r';
+    if(lls.size() == 4) {
+        std::vector<cv::Vec4f> sorted_lines;
+        std::vector<std::pair<double, int>> dists_of_midpt;
+        for(int i = 0; i < 4; i++) {
+            cv::Vec4f line_i = lls[i].line;
+            cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
+            cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
+            cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
+            if(axis == 'x')
+                dists_of_midpt.push_back(std::make_pair(mid_pt.x, i));
+            else if(axis == 'y')
+                dists_of_midpt.push_back(std::make_pair(mid_pt.y, i));
             else
-                lls[dists_of_midpt[i].second].labelX = 'l';
-        } else if (axis == 'y') {
-            if(i <= 1)
-                lls[dists_of_midpt[i].second].labelY = 'b';
-            else
-                lls[dists_of_midpt[i].second].labelY = 't';
-        } else {
-            ROS_ASSERT(axis == 'x' || axis == 'y');
+                ROS_ASSERT(axis == 'x' || axis == 'y');
         }
+        ROS_ASSERT(dists_of_midpt.size() == 4);
+        std::sort(dists_of_midpt.begin(),
+                  dists_of_midpt.end(),
+                  std::greater<std::pair<double, int>>());
+        for (int i = 0; i < 4; i++) {
+            if(axis == 'x') {
+                if(i <= 1)
+                    lls[dists_of_midpt[i].second].labelX = 'r';
+                else
+                    lls[dists_of_midpt[i].second].labelX = 'l';
+            } else if (axis == 'y') {
+                if(i <= 1)
+                    lls[dists_of_midpt[i].second].labelY = 'b';
+                else
+                    lls[dists_of_midpt[i].second].labelY = 't';
+            } else {
+                ROS_ASSERT(axis == 'x' || axis == 'y');
+            }
+        }
+    } else {
+        ROS_WARN_STREAM("Less than 4 valid points..");
     }
 }
 
@@ -553,8 +615,8 @@ void detectLines(cv::Mat image_in) {
     cv::cvtColor(image_in, image_gray, CV_RGB2GRAY);
     float distance_threshold = 1.41421356f;
 //    float distance_threshold = 1;
-    double canny_th1 = 200.0;
-    double canny_th2 = 200.0;
+    double canny_th1 = canny_threshold;
+    double canny_th2 = canny_threshold;
     int canny_aperture_size = 3;
     bool do_merge = true;
     cv::Ptr<cv::ximgproc::FastLineDetector> fld =
@@ -564,9 +626,21 @@ void detectLines(cv::Mat image_in) {
                                                      canny_aperture_size,
                                                      do_merge);
     std::vector<cv::Vec4f> lines_fld;
+    // detects all lines
     fld->detect(image_gray, lines_fld);
+    if(draw_all_lines) {
+        cv::Mat image_lines = image_in.clone();
+        for(int l = 0; l < lines_fld.size(); l++) {
+            cv::Vec4f line_l = lines_fld[l];
+            cv::Point2f start_pt = cv::Point2f(line_l[0], line_l[1]);
+            cv::Point2f end_pt = cv::Point2f(line_l[2], line_l[3]);
+            cv::line(image_lines, start_pt, end_pt, cv::Scalar(255, 0, 0), 2, cv::LINE_8);
+        }
+        cv::imshow("all lines", image_lines);
+        cv::waitKey(1);
+    }
     if(lines_fld.size() >=4) {
-        chooseBestLines(lines_fld);
+        chooseBestLines(lines_fld, image_in);
         labelLines('x');
         labelLines('y');
         drawAndPublishLineSegments(image_in);
@@ -593,6 +667,7 @@ int main(int argc, char **argv) {
     cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
     line_length_threshold = readParam<int>(nh, "line_length_threshold");
     side_len = readParam<double>(nh, "side_len");
+    canny_threshold = readParam<double>(nh, "canny_threshold");
     readCameraParams();
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
