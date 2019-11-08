@@ -5,7 +5,7 @@
   <param name ="result_str"
          value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_right.txt"/>
   <param name ="cam_config_file_path"
-         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_rect_faccal.yaml"/>
+         value="/home/subodh/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
 
   <node  pkg="projection" name="right_line_projection_node" type="line_projection_node" output="screen">
 	  <remap from="/image_in" to="/nerian_stereo/right_image"/>

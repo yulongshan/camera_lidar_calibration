@@ -2,7 +2,7 @@
 <launch>
 
   <param name = "/use_sim_time" value="true"/>
-  <param name = "max_no_of_plane_views" value="15"/>
+  <param name = "max_no_of_plane_views" value="10"/>
   <param name = "max_no_of_line_views" value="25"/>
   <param name = "initializeR" value="false"/>
 

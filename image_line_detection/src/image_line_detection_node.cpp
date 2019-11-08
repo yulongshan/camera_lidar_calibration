@@ -134,7 +134,6 @@ double getAngle(double slope1, double slope2) {
     return angle;
 }
 
-
 double getDistance(cv::Vec4f line1, cv::Vec4f line2) {
     cv::Point2f l1_pta = cv::Point2f(line1[0], line1[1]);
     cv::Point2f l1_ptb = cv::Point2f(line1[2], line1[3]);
@@ -319,31 +318,33 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                 lines_ordered[3] = lls[i].line;
             }
         }
-        double angle1 =
+        double angle01 =
                 fabs(getAngle(slopes_ordered[0], slopes_ordered[1]))*180/M_PI;
-        double angle2 =
-                fabs(getAngle(slopes_ordered[1], slopes_ordered[2]))*180/M_PI;
-        double angle3 =
+        double angle12 =
+                180.0f-fabs(getAngle(slopes_ordered[1], slopes_ordered[2]))*180/M_PI;
+        double angle23 =
                 fabs(getAngle(slopes_ordered[2], slopes_ordered[3]))*180/M_PI;
-        double angle4 =
-                fabs(getAngle(slopes_ordered[3], slopes_ordered[0]))*180/M_PI;
+        double angle30 =
+                180.0f-fabs(getAngle(slopes_ordered[3], slopes_ordered[0]))*180/M_PI;
+        double angle02 =
+                fabs(getAngle(slopes_ordered[0], slopes_ordered[2]))*180/M_PI;
+        double angle13 =
+                fabs(getAngle(slopes_ordered[1], slopes_ordered[3]))*180/M_PI;
 
         double dist02 = getDistance(lines_ordered[0], lines_ordered[2]);
         double dist13 = getDistance(lines_ordered[1], lines_ordered[3]);
-        ROS_WARN_STREAM("Angle 1: " << angle1);
-        ROS_WARN_STREAM("Angle 2: " << angle2);
-        ROS_WARN_STREAM("Angle 3: " << angle3);
-        ROS_WARN_STREAM("Angle 4: " << angle4);
+
+        ROS_WARN_STREAM("Angle 1: " << angle01);
+        ROS_WARN_STREAM("Angle 2: " << angle12);
+        ROS_WARN_STREAM("Angle 3: " << angle23);
+        ROS_WARN_STREAM("Angle 4: " << angle30);
+        ROS_WARN_STREAM("Sum of angles: " << angle01 + angle12 + angle23 + angle30);
         ROS_WARN_STREAM("dist 02: " << dist02);
         ROS_WARN_STREAM("dist 13: " << dist13);
 
-        if(angle1 > 50 &&
-           angle2 > 50 &&
-           angle3 > 50 &&
-           angle4 > 50 &&
-           dist02 > 150 && dist02 < 300 &&
-           dist13 > 150 && dist13 < 300) {
-            ROS_WARN_STREAM("Publishing Lines: " << ++line_no);
+        if(angle01 > 30 && angle12 > 30 && angle23 > 30 && angle30 > 30 &&
+           dist02 > 100 && dist13 > 100) {
+            ROS_INFO_STREAM("[drawAndPublishLineSegments]: Publishing Lines: " << ++line_no);
             cv::Point2f pt1 = getIntersection(lines_ordered[0], lines_ordered[1]);
             cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
             cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
@@ -473,11 +474,13 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                             mid_pt, cv::FONT_HERSHEY_DUPLEX,
                             1, cv::Scalar(0, 143, 143), 2);
             }
+        } else {
+            ROS_WARN_STREAM("[drawAndPublishLineSegments]: Not Publishing Lines");
         }
         cv::imshow("view", image_in);
         cv::waitKey(1);
     } else {
-        ROS_WARN_STREAM("Less than 4 valid points..");
+        ROS_WARN_STREAM("[drawAndPublishLineSegments]: Less than 4 valid lines..");
     }
 }
 
@@ -492,7 +495,18 @@ double getSlope(cv::Vec4f line) {
     return m;
 }
 
+double getAngle(cv::Point2f start_pt,
+                cv::Point2f end_pt) {
+    double x_start = start_pt.x;
+    double y_start = start_pt.y;
 
+    double x_end = end_pt.x;
+    double y_end = end_pt.y;
+
+    double angle_rad = atan2(y_end - y_start, x_end - x_start);
+    double angle_deg = angle_rad*180/M_PI;
+    return angle_deg;
+}
 
 void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
     lls.clear();
@@ -508,14 +522,7 @@ void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
         cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
         cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
 
-        double x_start = start_pt.x;
-        double y_start = start_pt.y;
-
-        double x_end = end_pt.x;
-        double y_end = end_pt.y;
-
-        double angle_rad = atan2(y_end - y_start, x_end - x_start);
-        double angle_deg = angle_rad*180/M_PI;
+        double angle_deg = getAngle(start_pt, end_pt);
         double angle_eps = 30;
         if(fabs(angle_deg - 90) < angle_eps)
             continue;
@@ -527,13 +534,14 @@ void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
             continue;
         if(fabs(angle_deg+180) < angle_eps)
             continue;
+
         double length = cv::norm(start_pt-end_pt);
-        std::cout << "Slope: " << angle_deg << std::endl;
+//        std::cout << "Slope: " << angle_deg << std::endl;
         lengths.push_back(std::make_pair(length, j++));
         angle_filtered_lines.push_back(line_i);
     }
 
-    std::cout << angle_filtered_lines.size() << "\t" << lengths.size() << std::endl;
+//    std::cout << angle_filtered_lines.size() << "\t" << lengths.size() << std::endl;
     if(lengths.size() >= 4) {
         std::sort(lengths.begin(), lengths.end(),
                   std::greater<std::pair<double, int>>());
@@ -553,17 +561,8 @@ void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
                      2, cv::LINE_8);
             cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
             cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
-
-            double x_start = start_pt.x;
-            double y_start = start_pt.y;
-
-            double x_end = end_pt.x;
-            double y_end = end_pt.y;
-
-            double angle_rad = atan2(y_end - y_start, x_end - x_start);
-            double angle_deg = angle_rad*180/M_PI;
-            std::cout << "Slope: " << angle_deg << std::endl;
-
+            double angle_deg = getAngle(start_pt, end_pt);
+//            std::cout << "Slope: " << angle_deg << std::endl;
         }
         cv::imshow("image_best_lines", image_best_lines);
         cv::waitKey(1);
@@ -606,7 +605,7 @@ void labelLines(char axis) {
             }
         }
     } else {
-        ROS_WARN_STREAM("Less than 4 valid points..");
+        ROS_WARN_STREAM("Less than 4 valid lines..");
     }
 }
 

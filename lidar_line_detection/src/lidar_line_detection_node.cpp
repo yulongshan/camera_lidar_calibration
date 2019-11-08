@@ -170,6 +170,7 @@ public:
     }
 
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
+        lls.clear();
         pcl::PointCloud<pcl::PointXYZI>::Ptr
                 plane(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::fromROSMsg(*cloud_msg, *plane);
@@ -205,8 +206,8 @@ public:
         }
         ROS_ASSERT(lines_pts.size() == lines_eqns.size());
         if(lines_pts.size() == 4) {
-            if(lines_pts[0].size() > 4 && lines_pts[1].size() > 4 &&
-               lines_pts[2].size() > 4 && lines_pts[3].size() > 4) {
+            if(lines_pts[0].size() > 2 && lines_pts[1].size() > 2 &&
+               lines_pts[2].size() > 2 && lines_pts[3].size() > 2) {
                 int count_0s = 0;
                 int count_1s = 0;
                 for(int i = 0; i < 4; i++) {
