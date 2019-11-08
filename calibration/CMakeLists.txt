@@ -33,6 +33,7 @@ include_directories(
 
 add_executable(${PROJECT_NAME}_node src/calibration_node.cpp)
 add_executable(calibration_node_test_initialization_node src/calibration_node_test_initialization.cpp)
+add_executable(plane_only_calib_node src/plane_only_calibration_node.cpp)
 
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
@@ -40,6 +41,12 @@ target_link_libraries(${PROJECT_NAME}_node
 )
 
 target_link_libraries(calibration_node_test_initialization_node
+   ${catkin_LIBRARIES}
+   ${CERES_LIBRARIES}
+        ${OpenCV_LIBS}
+)
+
+target_link_libraries(plane_only_calib_node
    ${catkin_LIBRARIES}
    ${CERES_LIBRARIES}
         ${OpenCV_LIBS}
