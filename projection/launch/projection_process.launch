@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find lidar_edge_detector)/launch/lidar_edge_detector_VLP32_node.launch" />
+  <include file="$(find checkerboard_plane_detection)/launch/checkerboard_plane_detection_node.launch" />
+  <include file="$(find checkerboard_plane_detection)/launch/checkerboard_edge_plane_detection_node.launch" />
+  <include file="$(find lidar_line_detection)/launch/lidar_line_detection_node.launch" />
+  <include file="$(find image_line_detection)/launch/left_image_line_detection.launch" />
+  <include file="$(find projection)/launch/left_projection_node.launch" />
+</launch>

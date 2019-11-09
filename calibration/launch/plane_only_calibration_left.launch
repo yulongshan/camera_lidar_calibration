@@ -3,9 +3,9 @@
 
   <param name = "/use_sim_time" value="true"/>
   <param name = "max_no_of_plane_views" value="15"/>
-  <param name = "initializeR" value="true"/>
+  <param name = "initializeR" value="false"/>
 
-  <param name = "result_str" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_plane_l.txt"/>
+  <param name = "result_str" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L.txt"/>
   <node  pkg="calibration" name="plane_only_calib_node_left" type="plane_only_calib_node" output="screen">
 	<remap from="/points_plane" to="/velodyne_points"/>
   </node>
