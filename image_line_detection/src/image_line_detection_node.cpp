@@ -287,6 +287,16 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     return imagePoints_proj;
 }
 
+bool isWithinImage(cv::Point2f query_pt) {
+    double u = query_pt.x;
+    double v = query_pt.y;
+    if (u < 0 || v < 0)
+        return false;
+    if (u > image_width-1 || v > image_height-1)
+        return false;
+    return true;
+}
+
 void drawAndPublishLineSegments(cv::Mat image_in) {
     if(lls.size() == 4) {
         std::vector<double> slopes_ordered(4);
@@ -326,21 +336,21 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                 fabs(getAngle(slopes_ordered[2], slopes_ordered[3]))*180/M_PI;
         double angle30 =
                 180.0f-fabs(getAngle(slopes_ordered[3], slopes_ordered[0]))*180/M_PI;
-        double angle02 =
-                fabs(getAngle(slopes_ordered[0], slopes_ordered[2]))*180/M_PI;
-        double angle13 =
-                fabs(getAngle(slopes_ordered[1], slopes_ordered[3]))*180/M_PI;
+//        double angle02 =
+//                fabs(getAngle(slopes_ordered[0], slopes_ordered[2]))*180/M_PI;
+//        double angle13 =
+//                fabs(getAngle(slopes_ordered[1], slopes_ordered[3]))*180/M_PI;
 
         double dist02 = getDistance(lines_ordered[0], lines_ordered[2]);
         double dist13 = getDistance(lines_ordered[1], lines_ordered[3]);
 
-        ROS_WARN_STREAM("Angle 1: " << angle01);
-        ROS_WARN_STREAM("Angle 2: " << angle12);
-        ROS_WARN_STREAM("Angle 3: " << angle23);
-        ROS_WARN_STREAM("Angle 4: " << angle30);
-        ROS_WARN_STREAM("Sum of angles: " << angle01 + angle12 + angle23 + angle30);
-        ROS_WARN_STREAM("dist 02: " << dist02);
-        ROS_WARN_STREAM("dist 13: " << dist13);
+//        ROS_WARN_STREAM("Angle 1: " << angle01);
+//        ROS_WARN_STREAM("Angle 2: " << angle12);
+//        ROS_WARN_STREAM("Angle 3: " << angle23);
+//        ROS_WARN_STREAM("Angle 4: " << angle30);
+//        ROS_WARN_STREAM("Sum of angles: " << angle01 + angle12 + angle23 + angle30);
+//        ROS_WARN_STREAM("dist 02: " << dist02);
+//        ROS_WARN_STREAM("dist 13: " << dist13);
 
         if(angle01 > 30 && angle12 > 30 && angle23 > 30 && angle30 > 30 &&
            dist02 > 100 && dist13 > 100) {
@@ -350,129 +360,140 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
             cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
             cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
             std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
-            cv::circle(image_in, pt1, 7,
-                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, pt2, 7,
-                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, pt3, 7,
-                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, pt4, 7,
-                       cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
 
-            cv::circle(image_in, re_projected_pts[0], 7,
-                       cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, re_projected_pts[1], 7,
-                       cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, re_projected_pts[2], 7,
-                       cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
-            cv::circle(image_in, re_projected_pts[3], 7,
-                       cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
+            cv::Point2f point1 = re_projected_pts[0];
+            cv::Point2f point2 = re_projected_pts[1];
+            cv::Point2f point3 = re_projected_pts[2];
+            cv::Point2f point4 = re_projected_pts[3];
 
-            for(size_t i = 0; i < 4; i++) {
-                cv::Vec4f line_i = lls[i].line;
+            // check if reprojected points are within the image if not, dont publish
 
-                cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
-                cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
-                cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
+            if(isWithinImage(point1) &&
+               isWithinImage(point2) &&
+               isWithinImage(point3) &&
+               isWithinImage(point4)) {
+                cv::circle(image_in, pt1, 7,
+                           cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, pt2, 7,
+                           cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, pt3, 7,
+                           cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, pt4, 7,
+                           cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
 
-                cv::Scalar line_color = cv::Scalar(0, 0, 0);
-                line_color = cv::Scalar(255, 0, 0);
-                std::string line_txt;
+                cv::circle(image_in, re_projected_pts[0], 7,
+                           cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, re_projected_pts[1], 7,
+                           cv::Scalar(0, 255, 0), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, re_projected_pts[2], 7,
+                           cv::Scalar(255, 0, 0), cv::FILLED, cv::LINE_8);
+                cv::circle(image_in, re_projected_pts[3], 7,
+                           cv::Scalar(0, 255, 255), cv::FILLED, cv::LINE_8);
 
-                char labelX = lls[i].labelX;
-                char labelY = lls[i].labelY;
+                for(size_t i = 0; i < 4; i++) {
+                    cv::Vec4f line_i = lls[i].line;
 
-                if(labelX == 'l' && labelY == 't') {
-                    line_txt = "lt";
+                    cv::Point2f start_pt = cv::Point2f(line_i[0], line_i[1]);
+                    cv::Point2f end_pt = cv::Point2f(line_i[2], line_i[3]);
+                    cv::Point2f mid_pt = 0.5*(start_pt + end_pt);
+
+                    cv::Scalar line_color = cv::Scalar(0, 0, 0);
                     line_color = cv::Scalar(255, 0, 0);
-                    slopes_ordered[0] = lls[i].slope;
-                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
-                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                    n_lt.header.stamp = global_header.stamp;
-                    n_lt.a = normal_eqn(0);
-                    n_lt.b = normal_eqn(1);
-                    n_lt.c = normal_eqn(2);
-                    normal_pub_lt.publish(n_lt);
+                    std::string line_txt;
 
-                    l_lt.header.stamp = global_header.stamp;
-                    l_lt.a1 = lls[i].line(0);
-                    l_lt.b1 = lls[i].line(1);
-                    l_lt.a2 = lls[i].line(2);
-                    l_lt.b2 = lls[i].line(3);
-                    line_pub_lt.publish(l_lt);
+                    char labelX = lls[i].labelX;
+                    char labelY = lls[i].labelY;
+
+                    if(labelX == 'l' && labelY == 't') {
+                        line_txt = "lt";
+                        line_color = cv::Scalar(255, 0, 0);
+                        slopes_ordered[0] = lls[i].slope;
+                        cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[0]);
+                        cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                        n_lt.header.stamp = global_header.stamp;
+                        n_lt.a = normal_eqn(0);
+                        n_lt.b = normal_eqn(1);
+                        n_lt.c = normal_eqn(2);
+                        normal_pub_lt.publish(n_lt);
+
+                        l_lt.header.stamp = global_header.stamp;
+                        l_lt.a1 = lls[i].line(0);
+                        l_lt.b1 = lls[i].line(1);
+                        l_lt.a2 = lls[i].line(2);
+                        l_lt.b2 = lls[i].line(3);
+                        line_pub_lt.publish(l_lt);
+                    } else if(labelX == 'r' && labelY == 't') {
+                        line_txt = "rt";
+                        line_color = cv::Scalar(0, 0, 255);
+                        slopes_ordered[1] = lls[i].slope;
+                        cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
+                        cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                        n_rt.header.stamp = global_header.stamp;
+                        n_rt.a = normal_eqn(0);
+                        n_rt.b = normal_eqn(1);
+                        n_rt.c = normal_eqn(2);
+                        normal_pub_rt.publish(n_rt);
+
+                        l_rt.header.stamp = global_header.stamp;
+                        l_rt.a1 = lls[i].line(0);
+                        l_rt.b1 = lls[i].line(1);
+                        l_rt.a2 = lls[i].line(2);
+                        l_rt.b2 = lls[i].line(3);
+                        line_pub_rt.publish(l_rt);
+                    } else if(labelX == 'r' && labelY == 'b') {
+                        line_txt = "rb";
+                        line_color = cv::Scalar(255, 255, 0);
+                        slopes_ordered[2] = lls[i].slope;
+                        cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
+                        cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                        n_rb.header.stamp = global_header.stamp;
+                        n_rb.a = normal_eqn(0);
+                        n_rb.b = normal_eqn(1);
+                        n_rb.c = normal_eqn(2);
+                        normal_pub_rb.publish(n_rb);
+
+                        l_rb.header.stamp = global_header.stamp;
+                        l_rb.a1 = lls[i].line(0);
+                        l_rb.b1 = lls[i].line(1);
+                        l_rb.a2 = lls[i].line(2);
+                        l_rb.b2 = lls[i].line(3);
+                        line_pub_rb.publish(l_rb);
+                    } else if(labelX == 'l' && labelY == 'b') {
+                        line_txt = "lb";
+                        line_color = cv::Scalar(0, 255, 0);
+                        slopes_ordered[3] = lls[i].slope;
+                        cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
+                        cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
+                        n_lb.header.stamp = global_header.stamp;
+                        n_lb.a = normal_eqn(0);
+                        n_lb.b = normal_eqn(1);
+                        n_lb.c = normal_eqn(2);
+                        normal_pub_lb.publish(n_lb);
+
+                        l_lb.header.stamp = global_header.stamp;
+                        l_lb.a1 = lls[i].line(0);
+                        l_lb.b1 = lls[i].line(1);
+                        l_lb.a2 = lls[i].line(2);
+                        l_lb.b2 = lls[i].line(3);
+                        line_pub_lb.publish(l_lb);
+                    } else {
+                        ROS_WARN_STREAM("[image_line_detection]: No label found");
+                    }
+
+                    cv::Scalar start_point_color = cv::Scalar(0, 255, 255);
+                    cv::Scalar end_point_color = cv::Scalar(255, 0, 255);
+                    cv::line(image_in, start_pt, end_pt, line_color, 2, cv::LINE_8);
+                    cv::circle(image_in, start_pt, 3,
+                               start_point_color, cv::FILLED, cv::LINE_8);
+                    cv::circle(image_in, end_pt, 3,
+                               end_point_color, cv::FILLED, cv::LINE_8);
+                    cv::putText(image_in,
+                                line_txt,
+                                mid_pt, cv::FONT_HERSHEY_DUPLEX,
+                                1, cv::Scalar(0, 143, 143), 2);
                 }
-
-                if(labelX == 'r' && labelY == 't') {
-                    line_txt = "rt";
-                    line_color = cv::Scalar(0, 0, 255);
-                    slopes_ordered[1] = lls[i].slope;
-                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[1]);
-                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                    n_rt.header.stamp = global_header.stamp;
-                    n_rt.a = normal_eqn(0);
-                    n_rt.b = normal_eqn(1);
-                    n_rt.c = normal_eqn(2);
-                    normal_pub_rt.publish(n_rt);
-
-                    l_rt.header.stamp = global_header.stamp;
-                    l_rt.a1 = lls[i].line(0);
-                    l_rt.b1 = lls[i].line(1);
-                    l_rt.a2 = lls[i].line(2);
-                    l_rt.b2 = lls[i].line(3);
-                    line_pub_rt.publish(l_rt);
-                }
-
-                if(labelX == 'r' && labelY == 'b') {
-                    line_txt = "rb";
-                    line_color = cv::Scalar(255, 255, 0);
-                    slopes_ordered[2] = lls[i].slope;
-                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[2]);
-                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                    n_rb.header.stamp = global_header.stamp;
-                    n_rb.a = normal_eqn(0);
-                    n_rb.b = normal_eqn(1);
-                    n_rb.c = normal_eqn(2);
-                    normal_pub_rb.publish(n_rb);
-
-                    l_rb.header.stamp = global_header.stamp;
-                    l_rb.a1 = lls[i].line(0);
-                    l_rb.b1 = lls[i].line(1);
-                    l_rb.a2 = lls[i].line(2);
-                    l_rb.b2 = lls[i].line(3);
-                    line_pub_rb.publish(l_rb);
-                }
-
-                if(labelX == 'l' && labelY == 'b') {
-                    line_txt = "lb";
-                    line_color = cv::Scalar(0, 255, 0);
-                    slopes_ordered[3] = lls[i].slope;
-                    cv::Vec3f lines_eqn = getEqnOfLine(lines_ordered[3]);
-                    cv::Vec3f normal_eqn = getEqnOfPlane(lines_eqn);
-                    n_lb.header.stamp = global_header.stamp;
-                    n_lb.a = normal_eqn(0);
-                    n_lb.b = normal_eqn(1);
-                    n_lb.c = normal_eqn(2);
-                    normal_pub_lb.publish(n_lb);
-
-                    l_lb.header.stamp = global_header.stamp;
-                    l_lb.a1 = lls[i].line(0);
-                    l_lb.b1 = lls[i].line(1);
-                    l_lb.a2 = lls[i].line(2);
-                    l_lb.b2 = lls[i].line(3);
-                    line_pub_lb.publish(l_lb);
-                }
-
-                cv::Scalar start_point_color = cv::Scalar(0, 255, 255);
-                cv::Scalar end_point_color = cv::Scalar(255, 0, 255);
-                cv::line(image_in, start_pt, end_pt, line_color, 2, cv::LINE_8);
-                cv::circle(image_in, start_pt, 3,
-                           start_point_color, cv::FILLED, cv::LINE_8);
-                cv::circle(image_in, end_pt, 3,
-                           end_point_color, cv::FILLED, cv::LINE_8);
-                cv::putText(image_in,
-                            line_txt,
-                            mid_pt, cv::FONT_HERSHEY_DUPLEX,
-                            1, cv::Scalar(0, 143, 143), 2);
+            } else {
+                ROS_WARN_STREAM("[image_line_detection]: one of the corners is outside the image");
             }
         } else {
             ROS_WARN_STREAM("[drawAndPublishLineSegments]: Not Publishing Lines");
