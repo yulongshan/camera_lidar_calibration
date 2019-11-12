@@ -1,6 +1,6 @@
 <launch>
         <param name ="/use_sim_time" value="true"/>
-        <param name ="data_folder_name" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/synchronizer/data"/>
+        <param name ="data_folder_name" value="/home/usl/catkin_ws/src/camera_lidar_calibration/synchronizer/data"/>
         <node pkg="synchronizer" type="synchronizer_node" name="synchronizer" output="screen">
               <remap from="/cloud_in" to="/velodyne_points"/>
               <remap from="/image_left" to="/nerian_stereo/left_image"/>

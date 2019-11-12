@@ -52,6 +52,8 @@ private:
     std::string image_left_topic_name;
     std::string image_right_topic_name;
 
+    int output_fps;
+
 public:
     frameGenerator(): it_(nh_) {
         image_left_folder_name =
@@ -66,11 +68,14 @@ public:
                 readParam<std::string>(nh_, "image_left_topic_name");
         image_right_topic_name =
                 readParam<std::string>(nh_, "image_right_topic_name");
-
+        output_fps =
+                readParam<int>(nh_, "output_fps");
         cloud_pub_ =
                 nh_.advertise<sensor_msgs::PointCloud2>(lidar_output_topic_name, 1);
         image_left_pub_ = it_.advertise(image_left_topic_name, 1);
         image_right_pub_ = it_.advertise(image_right_topic_name, 1);
+        ROS_INFO_STREAM("Press [ENTER] to continue");
+        std::cin.get();
         readData();
     }
 
@@ -121,21 +126,29 @@ public:
             }
         }
 
-        for(int i = 0; i < random_numbers.size(); i++) {
+        ros::Rate loop_rate(output_fps);
+        int i = 0;
+        ros::Time present_time, previous_time;
+        while (ros::ok() && i < random_numbers.size()) {
+            present_time = ros::Time::now();
+            if (i!=0) {
+                double time_taken = present_time.toSec() - previous_time.toSec();
+                ROS_INFO_STREAM("Publishing Data at " << 1/time_taken << " [Hz]");
+            }
             ros::Time current_time = ros::Time::now();
             int query_integer = random_numbers[i];
             cv::Mat image_left = cv::imread(filenamesImgLeft[query_integer]);
             cv::Mat image_right = cv::imread(filenamesImgRight[query_integer]);
             pcl::PointCloud<PointXYZIr>::Ptr
-                                    cloud (new pcl::PointCloud<PointXYZIr>);
+                    cloud (new pcl::PointCloud<PointXYZIr>);
             pcl::io::loadPCDFile<PointXYZIr>(filenamesPCD[query_integer], *cloud);
 
             sensor_msgs::ImagePtr msg_left =
                     cv_bridge::CvImage(std_msgs::Header(), "bgr8",
-                            image_left).toImageMsg();
+                                       image_left).toImageMsg();
             sensor_msgs::ImagePtr msg_right =
                     cv_bridge::CvImage(std_msgs::Header(), "bgr8",
-                            image_right).toImageMsg();
+                                       image_right).toImageMsg();
             msg_left->header.stamp = current_time;
             msg_right->header.stamp = current_time;
             sensor_msgs::PointCloud2 cloud_ros;
@@ -146,8 +159,9 @@ public:
             image_left_pub_.publish(msg_left);
             image_right_pub_.publish(msg_right);
             cloud_pub_.publish(cloud_ros);
-
-            cv::waitKey(100);
+            loop_rate.sleep();
+            i++;
+            previous_time = present_time;
         }
     }
 
