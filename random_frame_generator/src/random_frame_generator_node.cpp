@@ -53,6 +53,7 @@ private:
     std::string image_right_topic_name;
 
     int output_fps;
+    bool randomize_frames;
 
 public:
     frameGenerator(): it_(nh_) {
@@ -74,6 +75,7 @@ public:
                 nh_.advertise<sensor_msgs::PointCloud2>(lidar_output_topic_name, 1);
         image_left_pub_ = it_.advertise(image_left_topic_name, 1);
         image_right_pub_ = it_.advertise(image_right_topic_name, 1);
+        randomize_frames = readParam<bool>(nh_, "randomize_frames");
         ROS_INFO_STREAM("Press [ENTER] to continue");
         std::cin.get();
         readData();
@@ -108,28 +110,35 @@ public:
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist6(0,
                 no_of_frames-1);
-
         std::vector<int> random_numbers;
-        int count = 0;
-        while(count < no_of_frames) {
-            int random_number = dist6(rng);
-            int flag = 0;
-            for(int i = 0; i < random_numbers.size(); i++) {
-                if(random_numbers[i] == random_number) {
-                    flag = 1;
-                    break;
+
+        if(randomize_frames) {
+            int count = 0;
+            while(count < no_of_frames) {
+                int random_number = dist6(rng);
+                int flag = 0;
+                for(int i = 0; i < random_numbers.size(); i++) {
+                    if(random_numbers[i] == random_number) {
+                        flag = 1;
+                        break;
+                    }
+                }
+                if(flag != 1) {
+                    random_numbers.push_back(random_number);
+                    count ++;
                 }
             }
-            if(flag != 1) {
-                random_numbers.push_back(random_number);
-                count ++;
+        } else {
+            for(int i = 0; i < random_numbers.size(); i++) {
+                random_numbers.push_back(i);
             }
         }
 
+        ROS_WARN_STREAM("RANDOM no size: " << random_numbers.size());
         ros::Rate loop_rate(output_fps);
         int i = 0;
         ros::Time present_time, previous_time;
-        while (ros::ok() && i < random_numbers.size()) {
+        while (ros::ok() && i < no_of_frames) {
             present_time = ros::Time::now();
             if (i!=0) {
                 double time_taken = present_time.toSec() - previous_time.toSec();
