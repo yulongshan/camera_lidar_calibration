@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
 
-  <arg name="computer_name" value="usl" />
+  <arg name="computer_name" value="subodh" />
   <param name = "/use_sim_time" value="true"/>
   <param name = "max_no_of_plane_views" value="15"/>
   <param name = "max_no_of_line_views" value="25"/>
@@ -16,7 +16,7 @@
 
   <param name = "no_of_diff_initializations" value="1"/>
   <param name = "debug_data_basefilename"
-         value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
   <param name ="cam_config_file_path"
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
   <param name = "result_str"

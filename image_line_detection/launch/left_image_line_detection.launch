@@ -1,5 +1,5 @@
 <launch>
-        <arg name="computer_name" value="usl" />
+        <arg name="computer_name" value="subodh" />
 
         <param name ="/use_sim_time" value="true"/>
         <param name ="cam_config_file_path" 

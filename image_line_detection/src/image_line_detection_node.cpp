@@ -260,13 +260,14 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     Eigen::MatrixXd cov_matR = cov_matRT.block(0, 0, 3, 3);
     Eigen::MatrixXd cov_matT = cov_matRT.block(3, 3, 3, 3);
 
+    // Careful here, I am publishing the whole rvec instead of publishing C_R_W(:, 3)
     cv::Mat C_R_W;
     cv::Rodrigues(rvec, C_R_W);
     normal_msg::normal n_plane;
     n_plane.header.stamp = global_header.stamp;
-    n_plane.a = C_R_W.at<double>(0, 2);
-    n_plane.b = C_R_W.at<double>(1, 2);
-    n_plane.c = C_R_W.at<double>(2, 2);
+    n_plane.a = rvec.at<double>(0);
+    n_plane.b = rvec.at<double>(1);
+    n_plane.c = rvec.at<double>(2);
     n_plane.w = traceRT(0);
     normal_pub_chkrbrd.publish(n_plane);
 
@@ -278,6 +279,7 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     tvec_plane.w = traceRT(1);
     tvec_pub_chkrbrd.publish(tvec_plane);
 
+    // This was for some debugging, can be removed
     if(view_no == 151) {
         ROS_WARN_STREAM("View recorded!!");
         std::cout << "C_R_W " << "\n" << C_R_W << std::endl;

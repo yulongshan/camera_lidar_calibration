@@ -889,7 +889,7 @@ public:
         ros::shutdown();
     }
 
-    void generateCSVFile(std::string filename,
+    void generateCSVFileFromLIDAR(std::string filename,
                          pcl::PointCloud<pcl::PointXYZ> cloud_data_pcl) {
         std::ofstream csv_file;
         csv_file.open(filename);
@@ -910,8 +910,16 @@ public:
         if(usePlane && no_of_plane_views < max_no_of_plane_views) {
             pcl::PointCloud<pcl::PointXYZ> plane_pcl;
             pcl::fromROSMsg(*plane_msg, plane_pcl);
+            cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64F);
+            rvec.at<double>(0) = norm_msg->a;
+            rvec.at<double>(1) = norm_msg->b;
+            rvec.at<double>(2) = norm_msg->c;
+            cv::Mat C_R_W;
+            cv::Rodrigues(rvec, C_R_W);
 
-            Eigen::Vector3d r3(norm_msg->a, norm_msg->b, norm_msg->c);
+            Eigen::Vector3d r3(C_R_W.at<double>(0, 2),
+                               C_R_W.at<double>(1, 2),
+                               C_R_W.at<double>(2, 2));
             Eigen::Vector3d c_t_w(tvec_msg->a, tvec_msg->b, tvec_msg->c);
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
             if(r3.dot(Nc_old) < 0.95) {
@@ -921,10 +929,11 @@ public:
                 plane_datum.noise = tvec_msg->w + norm_msg->w;
                 plane_data.push_back(plane_datum);
                 if (generate_debug_data) {
-                    std::string file_name = "/plane/lidar/lidar_plane_view"
+                    std::string file_name_lidardata = "/plane/lidar/lidar_plane_view"
                             +std::to_string(no_of_plane_views)+".csv";
-                    std::string lidar_plane_file_name = debug_data_basefilename+file_name;
-                    generateCSVFile(lidar_plane_file_name, plane_pcl);
+                    std::string lidar_plane_file_name = debug_data_basefilename
+                            +file_name_lidardata;
+                    generateCSVFileFromLIDAR(lidar_plane_file_name, plane_pcl);
                 }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
@@ -1000,19 +1009,19 @@ public:
                     std::string lidar_line1_file_name = debug_data_basefilename +
                             "/lines/lidar/line1_"
                             +std::to_string(no_of_line_views)+".csv";
-                    generateCSVFile(lidar_line1_file_name, line_1_pcl);
+                    generateCSVFileFromLIDAR(lidar_line1_file_name, line_1_pcl);
                     std::string lidar_line2_file_name = debug_data_basefilename +
                             "/lines/lidar/line2_"
                             +std::to_string(no_of_line_views)+".csv";
-                    generateCSVFile(lidar_line2_file_name, line_2_pcl);
+                    generateCSVFileFromLIDAR(lidar_line2_file_name, line_2_pcl);
                     std::string lidar_line3_file_name = debug_data_basefilename +
                             "/lines/lidar/line3_"
                             +std::to_string(no_of_line_views)+".csv";
-                    generateCSVFile(lidar_line3_file_name, line_3_pcl);
+                    generateCSVFileFromLIDAR(lidar_line3_file_name, line_3_pcl);
                     std::string lidar_line4_file_name = debug_data_basefilename +
                             "/lines/lidar/line4_"
                             +std::to_string(no_of_line_views)+".csv";
-                    generateCSVFile(lidar_line4_file_name, line_4_pcl);
+                    generateCSVFileFromLIDAR(lidar_line4_file_name, line_4_pcl);
                 }
                 ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
                 checkStatus();
