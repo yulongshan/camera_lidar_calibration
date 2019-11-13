@@ -138,6 +138,9 @@ private:
     std::ofstream res_file;
 
     int no_of_diff_initializations;
+
+    bool generate_debug_data;
+    std::string debug_data_basefilename;
 public:
     calib() {
         line1_sub = new
@@ -270,6 +273,8 @@ public:
         initializations_file = readParam<std::string>(nh, "initializations_file");
         results_file = readParam<std::string>(nh, "results_file");
         no_of_diff_initializations = readParam<int>(nh, "no_of_diff_initializations");
+        generate_debug_data = readParam<bool>(nh, "generate_debug_data");
+        debug_data_basefilename = readParam<std::string>(nh, "debug_data_basefilename");
     }
 
     template <typename T>
@@ -884,6 +889,20 @@ public:
         ros::shutdown();
     }
 
+    void generateCSVFile(std::string filename,
+                         pcl::PointCloud<pcl::PointXYZ> cloud_data_pcl) {
+        std::ofstream csv_file;
+        csv_file.open(filename);
+        for(int i = 0; i < cloud_data_pcl.points.size(); i++) {
+            double X = cloud_data_pcl.points[i].x;
+            double Y = cloud_data_pcl.points[i].y;
+            double Z = cloud_data_pcl.points[i].z;
+            csv_file << X << "," << Y << "," << Z << "\n";
+        }
+        csv_file.close();
+
+    }
+
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
                        const normal_msg::normalConstPtr &norm_msg,
                        const normal_msg::normalConstPtr &tvec_msg) {
@@ -895,14 +914,18 @@ public:
             Eigen::Vector3d r3(norm_msg->a, norm_msg->b, norm_msg->c);
             Eigen::Vector3d c_t_w(tvec_msg->a, tvec_msg->b, tvec_msg->c);
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
-
             if(r3.dot(Nc_old) < 0.95) {
-
                 dataFrame plane_datum;
                 plane_datum.lidar_pts = plane_pcl;
                 plane_datum.normal = Nc;
                 plane_datum.noise = tvec_msg->w + norm_msg->w;
                 plane_data.push_back(plane_datum);
+                if (generate_debug_data) {
+                    std::string file_name = "/plane/lidar/lidar_plane_view"
+                            +std::to_string(no_of_plane_views)+".csv";
+                    std::string lidar_plane_file_name = debug_data_basefilename+file_name;
+                    generateCSVFile(lidar_plane_file_name, plane_pcl);
+                }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
@@ -973,6 +996,24 @@ public:
                 line4_datum.normal = normal4;
                 line4_data.push_back(line4_datum);
 
+                if(generate_debug_data) {
+                    std::string lidar_line1_file_name = debug_data_basefilename +
+                            "/lines/lidar/line1_"
+                            +std::to_string(no_of_line_views)+".csv";
+                    generateCSVFile(lidar_line1_file_name, line_1_pcl);
+                    std::string lidar_line2_file_name = debug_data_basefilename +
+                            "/lines/lidar/line2_"
+                            +std::to_string(no_of_line_views)+".csv";
+                    generateCSVFile(lidar_line2_file_name, line_2_pcl);
+                    std::string lidar_line3_file_name = debug_data_basefilename +
+                            "/lines/lidar/line3_"
+                            +std::to_string(no_of_line_views)+".csv";
+                    generateCSVFile(lidar_line3_file_name, line_3_pcl);
+                    std::string lidar_line4_file_name = debug_data_basefilename +
+                            "/lines/lidar/line4_"
+                            +std::to_string(no_of_line_views)+".csv";
+                    generateCSVFile(lidar_line4_file_name, line_4_pcl);
+                }
                 ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);
                 checkStatus();
             } else {

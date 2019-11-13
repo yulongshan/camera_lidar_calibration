@@ -129,7 +129,7 @@ public:
                 }
             }
         } else {
-            for(int i = 0; i < random_numbers.size(); i++) {
+            for(int i = 0; i < no_of_frames; i++) {
                 random_numbers.push_back(i);
             }
         }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
+
   <arg name="computer_name" value="usl" />
   <param name = "/use_sim_time" value="true"/>
   <param name = "max_no_of_plane_views" value="15"/>
@@ -7,17 +8,26 @@
   <param name = "initializeR" value="false"/>
 
   <param name = "usePlane" value="true"/>
-  <param name = "useLines" value="true"/>
+  <param name = "useLines" value="false"/>
   <param name = "jointSol" value="false"/>
   <param name = "planeFirst" value="false"/>
 
+  <param name = "generate_debug_data" value="true"/>
+
   <param name = "no_of_diff_initializations" value="1"/>
+  <param name = "debug_data_basefilename"
+         value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
   <param name ="cam_config_file_path"
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
-  <param name = "result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
-  <param name = "initializations_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/initializations_left.csv"/>
-  <param name = "results_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_left.csv"/>
-  <node  pkg = "calibration" name="left_calibration_node_test_initialization_node_left" type="calibration_node_test_initialization_node" output="screen">
+  <param name = "result_str"
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
+  <param name = "initializations_file"
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/initializations_left.csv"/>
+  <param name = "results_file"
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_left.csv"/>
+  <node  pkg = "calibration"
+         name="left_calibration_node_test_initialization_node_left"
+         type="calibration_node_test_initialization_node" output="screen">
   </node>
 
 </launch>

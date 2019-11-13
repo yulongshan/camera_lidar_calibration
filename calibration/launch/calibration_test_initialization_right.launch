@@ -12,6 +12,9 @@
   <param name = "planeFirst" value="false"/>
 
   <param name = "no_of_diff_initializations" value="1"/>
+  <param name = "debug_data_basefilename"
+         value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
+
   <param name ="cam_config_file_path"
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
   <param name = "result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_right.txt"/>
