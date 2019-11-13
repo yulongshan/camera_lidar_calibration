@@ -890,7 +890,7 @@ public:
     }
 
     void generateCSVFileFromLIDAR(std::string filename,
-                         pcl::PointCloud<pcl::PointXYZ> cloud_data_pcl) {
+                                  pcl::PointCloud<pcl::PointXYZ> cloud_data_pcl) {
         std::ofstream csv_file;
         csv_file.open(filename);
         for(int i = 0; i < cloud_data_pcl.points.size(); i++) {
@@ -901,6 +901,16 @@ public:
         }
         csv_file.close();
 
+    }
+
+    void generateCSVFileFromCamera(std::string filename,
+                                   cv::Mat R, cv::Mat t) {
+        std::ofstream csv_file;
+        csv_file.open(filename);
+        csv_file << R.at<double>(0, 0) << "," << R.at<double>(0, 1) << "," << R.at<double>(0, 2) << "," << t.at<double>(0) << "\n"
+                 << R.at<double>(1, 0) << "," << R.at<double>(1, 1) << "," << R.at<double>(1, 2) << "," << t.at<double>(1) << "\n"
+                 << R.at<double>(2, 0) << "," << R.at<double>(2, 1) << "," << R.at<double>(2, 2) << "," << t.at<double>(2) << "\n";
+        csv_file.close();
     }
 
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
@@ -921,6 +931,10 @@ public:
                                C_R_W.at<double>(1, 2),
                                C_R_W.at<double>(2, 2));
             Eigen::Vector3d c_t_w(tvec_msg->a, tvec_msg->b, tvec_msg->c);
+            cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64F);
+            tvec.at<double>(0) = tvec_msg->a;
+            tvec.at<double>(1) = tvec_msg->b;
+            tvec.at<double>(2) = tvec_msg->c;
             Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
             if(r3.dot(Nc_old) < 0.95) {
                 dataFrame plane_datum;
@@ -934,6 +948,11 @@ public:
                     std::string lidar_plane_file_name = debug_data_basefilename
                             +file_name_lidardata;
                     generateCSVFileFromLIDAR(lidar_plane_file_name, plane_pcl);
+                    std::string file_name_camdata = "/plane/camera/camera_plane_view"
+                                                      +std::to_string(no_of_plane_views)+".csv";
+                    std::string cam_plane_file_name = debug_data_basefilename
+                                                        +file_name_camdata;
+                    generateCSVFileFromCamera(cam_plane_file_name, C_R_W, tvec);
                 }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
