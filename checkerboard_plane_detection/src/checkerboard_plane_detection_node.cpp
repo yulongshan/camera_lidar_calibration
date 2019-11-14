@@ -15,6 +15,7 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <pcl/sample_consensus/ransac.h>
@@ -40,6 +41,7 @@ private:
     int view_no;
     std::ofstream points3d_file;
     std::string points3d_file_name;
+    bool radius_filter;
 
 public:
     chkrbrdPlaneDetector() {
@@ -57,6 +59,7 @@ public:
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
         view_no = 0;
         points3d_file_name = readParam<std::string>(nh, "points3d_file_name");
+        radius_filter = readParam<bool>(nh, "radius_filter");
     }
 
     template <typename T>
@@ -86,7 +89,8 @@ public:
 
         pcl::PointCloud<pcl::PointXYZI>::Ptr
                 plane(new pcl::PointCloud<pcl::PointXYZI>);
-
+        pcl::PointCloud<pcl::PointXYZI>::Ptr
+                plane_filtered(new pcl::PointCloud<pcl::PointXYZI>);
 
         // Pass through filters
         pcl::PassThrough<pcl::PointXYZI> pass_x;
@@ -109,15 +113,24 @@ public:
         // Plane Segmentation
         pcl::SampleConsensusModelPlane<pcl::PointXYZI>::Ptr
                 model_p(new
-                                pcl::SampleConsensusModelPlane<pcl::PointXYZI>(cloud_filtered_xy));
+                                pcl::SampleConsensusModelPlane<pcl::PointXYZI>(cloud_filtered_xyz));
         pcl::RandomSampleConsensus<pcl::PointXYZI> ransac(model_p);
         ransac.setDistanceThreshold(ransac_threshold);
         ransac.computeModel();
         std::vector<int> inlier_indices;
         ransac.getInliers(inlier_indices);
-        pcl::copyPointCloud<pcl::PointXYZI>(*cloud_filtered_xy,
+        pcl::copyPointCloud<pcl::PointXYZI>(*cloud_filtered_xyz,
                                             inlier_indices,
                                             *plane);
+        if(radius_filter) {
+            pcl::RadiusOutlierRemoval<pcl::PointXYZI> outrem;
+            outrem.setInputCloud(plane);
+            outrem.setRadiusSearch(0.05);
+            outrem.setMinNeighborsInRadius(10);
+            outrem.filter(*plane_filtered);
+        } else {
+            plane_filtered = plane;
+        }
 //        ROS_INFO_STREAM("Model Coeffs: " << ransac.model_coefficients_);
 //        ROS_INFO_STREAM("No of points on plane: " << plane->points.size());
 //        Eigen::VectorXf plane_coeff = ransac.model_coefficients_;
@@ -125,9 +138,9 @@ public:
 //        Eigen::Vector3f normal = Eigen::Vector3f(plane_coeff(0), plane_coeff(1), plane_coeff(2));
         // Publish detected plane
         sensor_msgs::PointCloud2 cloud_out_ros;
-        ROS_WARN_STREAM("No of planar points: " << plane->points.size());
-        if(plane->points.size() > min_pts) {
-            pcl::toROSMsg(*plane, cloud_out_ros);
+        ROS_WARN_STREAM("No of planar points: " << plane_filtered->points.size());
+        if(plane_filtered->points.size() > min_pts) {
+            pcl::toROSMsg(*plane_filtered, cloud_out_ros);
             cloud_out_ros.header.stamp = cloud_msg->header.stamp;
             cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
             cloud_pub.publish(cloud_out_ros);

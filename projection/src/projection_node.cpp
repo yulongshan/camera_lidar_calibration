@@ -155,7 +155,7 @@ public:
 
         for(int i = 0; i < cloud_pcl.points.size(); i++) {
 
-            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > 3)
+            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > 5)
                 continue;
 
             Eigen::Vector4d pointCloud_L;

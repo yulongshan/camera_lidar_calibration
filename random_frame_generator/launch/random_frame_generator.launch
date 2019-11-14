@@ -8,7 +8,7 @@
   <param name ="image_left_topic_name" value="/nerian_stereo/left_image"/>
   <param name ="image_right_topic_name" value="/nerian_stereo/right_image"/>
   <param name ="output_fps" value="5"/>
-  <param name ="randomize_frames" value="true"/>
+  <param name ="randomize_frames" value="false"/>
   <node  pkg="random_frame_generator" name="random_frame_generator" type="random_frame_generator_node" output="screen">
   </node>
 </launch>
