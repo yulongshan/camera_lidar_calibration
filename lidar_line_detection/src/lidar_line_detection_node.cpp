@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <sstream>
 
@@ -26,6 +25,7 @@ struct lineWithLabel {
     pcl::PointCloud<pcl::PointXYZI> line_pts;
     char labelZ;
     char labelY;
+    Eigen::VectorXf line_coeffs;
 };
 
 class lidarLineDetection {
@@ -124,10 +124,17 @@ public:
     void publishLinesInOrder() {
         sensor_msgs::PointCloud2 line1_ros, line2_ros, line3_ros, line4_ros;
         ROS_ASSERT(lls.size() == 4);
+        Eigen::Vector3f a1, b1;
+        Eigen::Vector3f a2, b2;
+        Eigen::Vector3f a3, b3;
+        Eigen::Vector3f a4, b4;
         for(size_t i = 0; i < 4; i++) {
             char labelZ = lls[i].labelZ;
             char labelY = lls[i].labelY;
             if(labelZ == 'b' && labelY == 'l') {
+                Eigen::VectorXf line_eqn = lls[i].line_coeffs;
+                a1 = Eigen::Vector3f(line_eqn[0], line_eqn[1], line_eqn[2]);
+                b1 = Eigen::Vector3f(line_eqn[3], line_eqn[4], line_eqn[5]);
                 pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
                 pcl::toROSMsg(filtered_cld, line1_ros);
                 if(filtered_cld.points.size() > 0)
@@ -135,6 +142,9 @@ public:
             }
 
             if(labelZ == 'b' && labelY == 'r') {
+                Eigen::VectorXf line_eqn = lls[i].line_coeffs;
+                a2 = Eigen::Vector3f(line_eqn[0], line_eqn[1], line_eqn[2]);
+                b2 = Eigen::Vector3f(line_eqn[3], line_eqn[4], line_eqn[5]);
                 pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
                 pcl::toROSMsg(filtered_cld, line2_ros);
                 if(filtered_cld.points.size() > 0)
@@ -142,6 +152,9 @@ public:
             }
 
             if(labelZ == 't' && labelY == 'r') {
+                Eigen::VectorXf line_eqn = lls[i].line_coeffs;
+                a3 = Eigen::Vector3f(line_eqn[0], line_eqn[1], line_eqn[2]);
+                b3 = Eigen::Vector3f(line_eqn[3], line_eqn[4], line_eqn[5]);
                 pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
                 pcl::toROSMsg(filtered_cld, line3_ros);
                 if(filtered_cld.points.size() > 0)
@@ -149,6 +162,9 @@ public:
             }
 
             if(labelZ == 't' && labelY == 'l') {
+                Eigen::VectorXf line_eqn = lls[i].line_coeffs;
+                a4 = Eigen::Vector3f(line_eqn[0], line_eqn[1], line_eqn[2]);
+                b4 = Eigen::Vector3f(line_eqn[3], line_eqn[4], line_eqn[5]);
                 pcl::PointCloud<pcl::PointXYZI> filtered_cld = applyRadiusFilter(lls[i].line_pts);
                 pcl::toROSMsg(filtered_cld, line4_ros);
                 if(filtered_cld.points.size() > 0)
@@ -182,7 +198,7 @@ public:
         for (int i = 0; i < 4; i++){
             pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(plane);
             pcl::SampleConsensusModelLine<pcl::PointXYZI>::Ptr model_l(new
-                        pcl::SampleConsensusModelLine<pcl::PointXYZI>(plane_ptr));
+                                                                               pcl::SampleConsensusModelLine<pcl::PointXYZI>(plane_ptr));
             pcl::RandomSampleConsensus<pcl::PointXYZI> ransac_l(model_l);
             ransac_l.setDistanceThreshold(0.02);
             ransac_l.computeModel();
@@ -206,8 +222,8 @@ public:
         }
         ROS_ASSERT(lines_pts.size() == lines_eqns.size());
         if(lines_pts.size() == 4) {
-            if(lines_pts[0].size() > 2 && lines_pts[1].size() > 2 &&
-               lines_pts[2].size() > 2 && lines_pts[3].size() > 2) {
+            if(lines_pts[0].size() > 4 && lines_pts[1].size() > 4 &&
+               lines_pts[2].size() > 4 && lines_pts[3].size() > 4) {
                 int count_0s = 0;
                 int count_1s = 0;
                 for(int i = 0; i < 4; i++) {
@@ -229,6 +245,7 @@ public:
                     for(int i = 0; i < 4; i++) {
                         lineWithLabel ll;
                         ll.line_pts = lines_pts[i];
+                        ll.line_coeffs = lines_eqns[i];
                         lls.push_back(ll);
                     }
                     labelLines('z');

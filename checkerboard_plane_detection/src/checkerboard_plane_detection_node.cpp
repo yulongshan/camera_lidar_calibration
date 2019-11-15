@@ -15,14 +15,37 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/passthrough.h>
-#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
 
-#include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/extract_indices.h>
+
+#include <opencv2/imgproc.hpp>
+#include <opencv2/ximgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/core/eigen.hpp>
+
+struct PointXYZIr
+{
+    PCL_ADD_POINT4D
+    ; // quad-word XYZ
+    float intensity; ///< laser intensity reading
+    uint16_t ring; ///< laser ring number
+    float range;EIGEN_MAKE_ALIGNED_OPERATOR_NEW // ensure proper alignment
+}EIGEN_ALIGN16;
+
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(
+        PointXYZIr,
+        (float, x, x)
+        (float, y, y)
+        (float, z, z)
+        (float, intensity, intensity)
+        (uint16_t, ring, ring))
 
 class chkrbrdPlaneDetector {
 private:
@@ -41,10 +64,13 @@ private:
     int view_no;
     std::ofstream points3d_file;
     std::string points3d_file_name;
-    bool radius_filter;
+    bool remove_outlier;
+    double side_len;
+    std::string target_config_file_path;
 
 public:
-    chkrbrdPlaneDetector() {
+    chkrbrdPlaneDetector(ros::NodeHandle nh_) {
+        nh = nh_;
         cloud_sub = nh.subscribe("/cloud_in", 1,
                                  &chkrbrdPlaneDetector::callback, this);
         cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/plane_out", 1);
@@ -59,7 +85,14 @@ public:
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
         view_no = 0;
         points3d_file_name = readParam<std::string>(nh, "points3d_file_name");
-        radius_filter = readParam<bool>(nh, "radius_filter");
+        remove_outlier = readParam<bool>(nh, "remove_outlier");
+        if (remove_outlier) {
+            target_config_file_path =
+                    readParam<std::string>(nh, "target_config_file_path");
+            cv::FileStorage fs_target_config(target_config_file_path, cv::FileStorage::READ);
+            ROS_ASSERT(fs_target_config.isOpened());
+            fs_target_config["side_len"] >> side_len;
+        }
     }
 
     template <typename T>
@@ -72,6 +105,31 @@ public:
             n.shutdown();
         }
         return ans;
+    }
+
+    pcl::PointCloud<pcl::PointXYZI> removeOutliers(pcl::PointCloud<pcl::PointXYZI> planar_pts) {
+        pcl::PointCloud<pcl::PointXYZI> planar_pts_filtered;
+        Eigen::Vector4d centroid;
+        pcl::compute3DCentroid(planar_pts, centroid);
+        double X_mp = centroid(0);
+        double Y_mp = centroid(1);
+        double Z_mp = centroid(2);
+        double max_dist = side_len/sqrt(2);
+        for (int i = 0; i < planar_pts.points.size(); i++) {
+            double dX = X_mp-planar_pts.points[i].x;
+            double dY = Y_mp-planar_pts.points[i].y;
+            double dZ = Z_mp-planar_pts.points[i].z;
+            double distance = sqrt(dX*dX + dY*dY + dZ*dZ);
+            if (distance <= max_dist) {
+                pcl::PointXYZI pt;
+                pt.x = planar_pts.points[i].x;
+                pt.y = planar_pts.points[i].y;
+                pt.z = planar_pts.points[i].z;
+                pt.intensity = planar_pts.points[i].intensity;
+                planar_pts_filtered.points.push_back(pt);
+            }
+        }
+        return planar_pts_filtered;
     }
 
     void callback(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
@@ -122,15 +180,14 @@ public:
         pcl::copyPointCloud<pcl::PointXYZI>(*cloud_filtered_xyz,
                                             inlier_indices,
                                             *plane);
-        if(radius_filter) {
-            pcl::RadiusOutlierRemoval<pcl::PointXYZI> outrem;
-            outrem.setInputCloud(plane);
-            outrem.setRadiusSearch(0.05);
-            outrem.setMinNeighborsInRadius(10);
-            outrem.filter(*plane_filtered);
+        if(remove_outlier) {
+            ROS_WARN_STREAM("[Plane Detection]: Removing Outliers");
+            *plane_filtered = removeOutliers(*plane);
         } else {
+            ROS_WARN_STREAM("[Plane Detection]: Not Removing Outliers");
             plane_filtered = plane;
         }
+
 //        ROS_INFO_STREAM("Model Coeffs: " << ransac.model_coefficients_);
 //        ROS_INFO_STREAM("No of points on plane: " << plane->points.size());
 //        Eigen::VectorXf plane_coeff = ransac.model_coefficients_;
@@ -138,7 +195,7 @@ public:
 //        Eigen::Vector3f normal = Eigen::Vector3f(plane_coeff(0), plane_coeff(1), plane_coeff(2));
         // Publish detected plane
         sensor_msgs::PointCloud2 cloud_out_ros;
-        ROS_WARN_STREAM("No of planar points: " << plane_filtered->points.size());
+        ROS_WARN_STREAM("[Plane Detection]: " << plane_filtered->points.size());
         if(plane_filtered->points.size() > min_pts) {
             pcl::toROSMsg(*plane_filtered, cloud_out_ros);
             cloud_out_ros.header.stamp = cloud_msg->header.stamp;
@@ -163,6 +220,7 @@ public:
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "checkerboard_plane_detection_node");
-    chkrbrdPlaneDetector cPD;
+    ros::NodeHandle nh("~");
+    chkrbrdPlaneDetector cPD(nh);
     ros::spin();
 }

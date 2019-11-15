@@ -26,6 +26,7 @@ double fx, fy, cx, cy;
 double k1, k2, p1, p2;
 int image_width, image_height;
 std::string cam_config_file_path;
+std::string target_config_file_path;
 double side_len;
 struct labelledLine {
     cv::Vec4f line;
@@ -82,6 +83,10 @@ void readCameraParams() {
     fs_cam_config["fy"] >> fy;
     fs_cam_config["cx"] >> cx;
     fs_cam_config["cy"] >> cy;
+
+    cv::FileStorage fs_target_config(target_config_file_path, cv::FileStorage::READ);
+    ROS_ASSERT(fs_target_config.isOpened());
+    fs_target_config["side_len"] >> side_len;
 }
 
 
@@ -687,8 +692,8 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "image_line_detector");
     ros::NodeHandle nh;
     cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
+    target_config_file_path = readParam<std::string>(nh, "target_config_file_path");
     line_length_threshold = readParam<int>(nh, "line_length_threshold");
-    side_len = readParam<double>(nh, "side_len");
     canny_threshold = readParam<double>(nh, "canny_threshold");
     readCameraParams();
     cv::startWindowThread();

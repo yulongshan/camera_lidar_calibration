@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED)
+find_package( OpenCV REQUIRED )
 
 catkin_package(
         INCLUDE_DIRS
@@ -26,6 +27,7 @@ catkin_package(
 include_directories(
         ${catkin_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
 )
 
 
@@ -36,4 +38,5 @@ add_executable(${PROJECT_NAME}_node
 target_link_libraries(${PROJECT_NAME}_node
         ${catkin_LIBRARIES}
         ${PCL_LIBRARIES}
+        ${OpenCV_LIBS}
 )

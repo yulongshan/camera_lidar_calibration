@@ -18,12 +18,19 @@ C1_T_C = [0  0 1 0;
          -1  0 0 0; 
           0 -1 0 0; 
           0  0 0 1]; 
-          
-for i = 1:length(files_lidar)
+n = length(files_lidar);
+n = 10;
+for i = 1:n
   csv_lidar = load((strcat('plane/lidar/', files_lidar(i).name)));
+%{
+  csv_lidar = removeOutliers(csv_lidar, 
+                             side_len, 
+                             side_len);
+%}                             
   xP = csv_lidar(:, 1);
   yP = csv_lidar(:, 2);
   zP = csv_lidar(:, 3);
+%  %{
   subplot(121);
   color_no = (i-1)/length(files_lidar);
   plot3(xP, yP, zP, '.', 'MarkerSize', 10);
@@ -43,9 +50,9 @@ for i = 1:length(files_lidar)
     'MarkerSize',10,...
     'MarkerEdgeColor',[color_no, color_no, color_no]);
   hold on
-  color_no
+%  %}
 end 
-
+%%{
 origin = [0, 0, 0];
 
 subplot(121);
@@ -81,3 +88,4 @@ hold off;
 grid;
 axis equal;
 title('Camera Views');
+%%}

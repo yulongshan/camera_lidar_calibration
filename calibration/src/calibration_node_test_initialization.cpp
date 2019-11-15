@@ -32,6 +32,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <boost/filesystem.hpp>
+
 struct dataFrame {
     pcl::PointCloud<pcl::PointXYZ> lidar_pts;
     Eigen::Vector3d normal;
@@ -141,6 +143,13 @@ private:
 
     bool generate_debug_data;
     std::string debug_data_basefilename;
+    std::string lidar_line1_file_name;
+    std::string lidar_line2_file_name;
+    std::string lidar_line3_file_name;
+    std::string lidar_line4_file_name;
+    std::string lidar_plane_file_name;
+    std::string cam_plane_file_name;
+
 public:
     calib() {
         line1_sub = new
@@ -273,8 +282,29 @@ public:
         initializations_file = readParam<std::string>(nh, "initializations_file");
         results_file = readParam<std::string>(nh, "results_file");
         no_of_diff_initializations = readParam<int>(nh, "no_of_diff_initializations");
+
         generate_debug_data = readParam<bool>(nh, "generate_debug_data");
-        debug_data_basefilename = readParam<std::string>(nh, "debug_data_basefilename");
+
+        if (generate_debug_data) {
+            debug_data_basefilename = readParam<std::string>(nh, "debug_data_basefilename");
+            if (usePlane) {
+                std::string folder_name_lidar = debug_data_basefilename +"/plane/lidar/";
+                boost::filesystem::remove_all(folder_name_lidar);
+                boost::filesystem::create_directory(folder_name_lidar);
+                std::string folder_name_camera = debug_data_basefilename +"/plane/camera/";
+                boost::filesystem::remove_all(folder_name_camera);
+                boost::filesystem::create_directory(folder_name_camera);
+            }
+
+            if (useLines) {
+                std::string folder_name_lidar = debug_data_basefilename +"/lines/lidar/";
+                boost::filesystem::remove_all(folder_name_lidar);
+                boost::filesystem::create_directory(folder_name_lidar);
+                std::string folder_name_camera = debug_data_basefilename +"/lines/camera/";
+                boost::filesystem::remove_all(folder_name_camera);
+                boost::filesystem::create_directory(folder_name_camera);
+            }
+        }
     }
 
     template <typename T>
@@ -943,15 +973,13 @@ public:
                 plane_datum.noise = tvec_msg->w + norm_msg->w;
                 plane_data.push_back(plane_datum);
                 if (generate_debug_data) {
-                    std::string file_name_lidardata = "/plane/lidar/lidar_plane_view"
+                    lidar_plane_file_name = debug_data_basefilename
+                            +"/plane/lidar/lidar_plane_view"
                             +std::to_string(no_of_plane_views)+".csv";
-                    std::string lidar_plane_file_name = debug_data_basefilename
-                            +file_name_lidardata;
+                    cam_plane_file_name = debug_data_basefilename
+                            +"/plane/camera/camera_plane_view"
+                            +std::to_string(no_of_plane_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_plane_file_name, plane_pcl);
-                    std::string file_name_camdata = "/plane/camera/camera_plane_view"
-                                                      +std::to_string(no_of_plane_views)+".csv";
-                    std::string cam_plane_file_name = debug_data_basefilename
-                                                        +file_name_camdata;
                     generateCSVFileFromCamera(cam_plane_file_name, C_R_W, tvec);
                 }
                 ROS_INFO_STREAM("No of plane views: " << ++no_of_plane_views);
@@ -989,8 +1017,8 @@ public:
             double no_pts_line2 = line_2_pcl.points.size();
             double no_pts_line3 = line_3_pcl.points.size();
             double no_pts_line4 = line_4_pcl.points.size();
-            if (no_pts_line1 >= 2 && no_pts_line2 >= 2 &&
-                no_pts_line3 >= 2 && no_pts_line4 >= 2) {
+            if (no_pts_line1 >= 4 && no_pts_line2 >= 4 &&
+                no_pts_line3 >= 4 && no_pts_line4 >= 4) {
                 Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
                                                           norm1_msg->b,
                                                           norm1_msg->c);
@@ -1025,21 +1053,21 @@ public:
                 line4_data.push_back(line4_datum);
 
                 if(generate_debug_data) {
-                    std::string lidar_line1_file_name = debug_data_basefilename +
-                            "/lines/lidar/line1_"
-                            +std::to_string(no_of_line_views)+".csv";
+                    lidar_line1_file_name = debug_data_basefilename +
+                                            "/lines/lidar/line1_"
+                                            +std::to_string(no_of_line_views)+".csv";
+                    lidar_line2_file_name = debug_data_basefilename +
+                                            "/lines/lidar/line2_"
+                                            +std::to_string(no_of_line_views)+".csv";
+                    lidar_line3_file_name = debug_data_basefilename +
+                                            "/lines/lidar/line3_"
+                                            +std::to_string(no_of_line_views)+".csv";
+                    lidar_line4_file_name = debug_data_basefilename +
+                                            "/lines/lidar/line4_"
+                                            +std::to_string(no_of_line_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_line1_file_name, line_1_pcl);
-                    std::string lidar_line2_file_name = debug_data_basefilename +
-                            "/lines/lidar/line2_"
-                            +std::to_string(no_of_line_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_line2_file_name, line_2_pcl);
-                    std::string lidar_line3_file_name = debug_data_basefilename +
-                            "/lines/lidar/line3_"
-                            +std::to_string(no_of_line_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_line3_file_name, line_3_pcl);
-                    std::string lidar_line4_file_name = debug_data_basefilename +
-                            "/lines/lidar/line4_"
-                            +std::to_string(no_of_line_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_line4_file_name, line_4_pcl);
                 }
                 ROS_INFO_STREAM("No of line views: " << ++no_of_line_views);

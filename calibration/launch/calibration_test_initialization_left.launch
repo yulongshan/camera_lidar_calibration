@@ -3,8 +3,8 @@
 
   <arg name="computer_name" value="usl" />
   <param name = "/use_sim_time" value="true"/>
-  <param name = "max_no_of_plane_views" value="15"/>
-  <param name = "max_no_of_line_views" value="25"/>
+  <param name = "max_no_of_plane_views" value="30"/>
+  <param name = "max_no_of_line_views" value="10"/>
   <param name = "initializeR" value="false"/>
 
   <param name = "usePlane" value="true"/>
