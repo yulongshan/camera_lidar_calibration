@@ -200,7 +200,7 @@ public:
             pcl::SampleConsensusModelLine<pcl::PointXYZI>::Ptr model_l(new
                                                                                pcl::SampleConsensusModelLine<pcl::PointXYZI>(plane_ptr));
             pcl::RandomSampleConsensus<pcl::PointXYZI> ransac_l(model_l);
-            ransac_l.setDistanceThreshold(0.02);
+            ransac_l.setDistanceThreshold(0.01);
             ransac_l.computeModel();
 //            ROS_INFO_STREAM("Model coeff: " << ransac_l.model_coefficients_);
             std::vector<int> line_inliers;
