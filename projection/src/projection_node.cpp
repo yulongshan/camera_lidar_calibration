@@ -76,17 +76,22 @@ public:
         cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
         ROS_ASSERT(fs_cam_config.isOpened());
         K = cv::Mat::zeros(3, 3, CV_64F);
-        D = cv::Mat::zeros(4, 1, CV_64F);
+        D = cv::Mat::zeros(5, 1, CV_64F);
         fs_cam_config["image_height"] >> image_height;
         fs_cam_config["image_width"] >> image_width;
         fs_cam_config["k1"] >> D.at<double>(0);
         fs_cam_config["k2"] >> D.at<double>(1);
         fs_cam_config["p1"] >> D.at<double>(2);
         fs_cam_config["p2"] >> D.at<double>(3);
+        fs_cam_config["k3"] >> D.at<double>(4);
         fs_cam_config["fx"] >> K.at<double>(0, 0);
         fs_cam_config["fy"] >> K.at<double>(1, 1);
         fs_cam_config["cx"] >> K.at<double>(0, 2);
         fs_cam_config["cy"] >> K.at<double>(1, 2);
+
+        ROS_INFO_STREAM("camMat :  \n" << K );
+        ROS_INFO_STREAM("distMat :  \n" << D );
+        std::cout << std::endl;
 
         fov_x = 2*atan2(image_width, 2*K.at<double>(0, 0))*180/CV_PI;
         fov_y = 2*atan2(image_height, 2*K.at<double>(1, 1))*180/CV_PI;
@@ -155,7 +160,7 @@ public:
 
         for(int i = 0; i < cloud_pcl.points.size(); i++) {
 
-            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > 5)
+            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > 6)
                 continue;
 
             Eigen::Vector4d pointCloud_L;

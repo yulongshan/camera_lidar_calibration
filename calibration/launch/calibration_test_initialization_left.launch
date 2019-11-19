@@ -3,7 +3,7 @@
 
   <arg name="computer_name" value="usl" />
   <param name = "/use_sim_time" value="true"/>
-  <param name = "max_no_of_plane_views" value="30"/>
+  <param name = "max_no_of_plane_views" value="40"/>
   <param name = "max_no_of_line_views" value="10"/>
   <param name = "initializeR" value="false"/>
 
@@ -18,7 +18,7 @@
   <param name = "debug_data_basefilename"
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
   <param name ="cam_config_file_path"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_left.yaml"/>
   <param name = "result_str"
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
   <param name = "initializations_file"
@@ -27,7 +27,8 @@
          value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_left.csv"/>
   <node  pkg = "calibration"
          name="left_calibration_node_test_initialization_node_left"
-         type="calibration_node_test_initialization_node" output="screen">
+         type="calibration_node_test_initialization_node"
+         output="screen">
   </node>
 
 </launch>

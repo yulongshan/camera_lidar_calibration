@@ -19,7 +19,7 @@ C1_T_C = [0  0 1 0;
           0 -1 0 0; 
           0  0 0 1]; 
 n = length(files_lidar);
-n = 10;
+%n = 5;
 for i = 1:n
   csv_lidar = load((strcat('plane/lidar/', files_lidar(i).name)));
 %{

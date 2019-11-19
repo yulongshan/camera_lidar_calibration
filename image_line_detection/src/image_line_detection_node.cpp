@@ -23,7 +23,7 @@
 //#define CY 3.0199901199340820e+02
 //
 double fx, fy, cx, cy;
-double k1, k2, p1, p2;
+double k1, k2, p1, p2, k3;
 int image_width, image_height;
 std::string cam_config_file_path;
 std::string target_config_file_path;
@@ -54,6 +54,8 @@ int line_length_threshold;
 double canny_threshold;
 double draw_all_lines = true;
 double draw_best_lines = true;
+
+cv::Mat camMat, distMat;
 template <typename T>
 T readParam(ros::NodeHandle &n, std::string name)
 {
@@ -69,7 +71,6 @@ T readParam(ros::NodeHandle &n, std::string name)
     }
     return ans;
 }
-
 void readCameraParams() {
     cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
     ROS_ASSERT(fs_cam_config.isOpened());
@@ -79,11 +80,29 @@ void readCameraParams() {
     fs_cam_config["k2"] >> k2;
     fs_cam_config["p1"] >> p1;
     fs_cam_config["p2"] >> p2;
+    fs_cam_config["k3"] >> k3;
     fs_cam_config["fx"] >> fx;
     fs_cam_config["fy"] >> fy;
     fs_cam_config["cx"] >> cx;
     fs_cam_config["cy"] >> cy;
 
+    camMat = cv::Mat::zeros(3, 3, CV_64FC1);
+    camMat.at<double>(0, 0) = fx;
+    camMat.at<double>(1, 1) = fy;
+    camMat.at<double>(0, 2) = cx;
+    camMat.at<double>(1, 2) = cy;
+    camMat.at<double>(2, 2) = 1.0;
+
+    distMat = cv::Mat::zeros(1, 5, CV_64FC1);
+    distMat.at<double>(0) = k1;
+    distMat.at<double>(1) = k2;
+    distMat.at<double>(2) = p1;
+    distMat.at<double>(3) = p2;
+    distMat.at<double>(4) = k3;
+
+    ROS_INFO_STREAM("camMat :  \n" << camMat );
+    ROS_INFO_STREAM("distMat :  \n" << distMat );
+    std::cout << std::endl;
     cv::FileStorage fs_target_config(target_config_file_path, cv::FileStorage::READ);
     ROS_ASSERT(fs_target_config.isOpened());
     fs_target_config["side_len"] >> side_len;
@@ -91,19 +110,14 @@ void readCameraParams() {
 
 
 cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
-    cv::Mat K = cv::Mat::zeros(3, 3, CV_64FC1);
     cv::Mat line_vec = cv::Mat::zeros(3, 1, CV_64FC1);
-    K.at<double>(0, 0) = fx;
-    K.at<double>(1, 1) = fy;
-    K.at<double>(0, 2) = cx;
-    K.at<double>(1, 2) = cy;
-    K.at<double>(2, 2) = 1.0;
 //    std::cout << K << std::endl;
     line_vec.at<double>(0) = line(0);
     line_vec.at<double>(1) = line(1);
     line_vec.at<double>(2) = line(2);
-    cv::transpose(K, K);
-    cv::Mat normal_c = K*line_vec;
+    cv::Mat camMat_transpose;
+    cv::transpose(camMat, camMat_transpose);
+    cv::Mat normal_c = camMat_transpose*line_vec;
     cv::Vec3f normal_vec(normal_c.at<double>(0),
                          normal_c.at<double>(1),
                          normal_c.at<double>(2));
@@ -366,19 +380,16 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
             cv::Point2f pt2 = getIntersection(lines_ordered[1], lines_ordered[2]);
             cv::Point2f pt3 = getIntersection(lines_ordered[2], lines_ordered[3]);
             cv::Point2f pt4 = getIntersection(lines_ordered[3], lines_ordered[0]);
-            std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
 
-            cv::Point2f point1 = re_projected_pts[0];
-            cv::Point2f point2 = re_projected_pts[1];
-            cv::Point2f point3 = re_projected_pts[2];
-            cv::Point2f point4 = re_projected_pts[3];
 
             // check if reprojected points are within the image if not, dont publish
 
-            if(isWithinImage(point1) &&
-               isWithinImage(point2) &&
-               isWithinImage(point3) &&
-               isWithinImage(point4)) {
+            if(isWithinImage(pt1) &&
+               isWithinImage(pt2) &&
+               isWithinImage(pt3) &&
+               isWithinImage(pt4)) {
+                std::vector<cv::Point2f> re_projected_pts = getPose(pt1, pt2, pt3, pt4);
+
                 cv::circle(image_in, pt1, 7,
                            cv::Scalar(255, 0, 255), cv::FILLED, cv::LINE_8);
                 cv::circle(image_in, pt2, 7,
@@ -500,12 +511,12 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
                                 1, cv::Scalar(0, 143, 143), 2);
                 }
             } else {
-                ROS_WARN_STREAM("[image_line_detection]: one of the corners is outside the image");
+                ROS_WARN_STREAM("[image_line_detection]: one of the corners is outside the image, skip publishing");
             }
         } else {
             ROS_WARN_STREAM("[drawAndPublishLineSegments]: Not Publishing Lines");
         }
-        cv::imshow("view", image_in);
+        cv::imshow("view edges", image_in);
         cv::waitKey(1);
     } else {
         ROS_WARN_STREAM("[drawAndPublishLineSegments]: Less than 4 valid lines..");
@@ -681,7 +692,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     view_no++;
     try{
         global_header.stamp = msg->header.stamp;
-        detectLines(cv_bridge::toCvShare(msg, "bgr8")->image);
+        cv::Mat distortedImg = cv_bridge::toCvShare(msg, "bgr8")->image;
+        cv::Mat undistortedImg;
+        cv::undistort(distortedImg, undistortedImg, camMat, distMat, cv::noArray());
+        detectLines(distortedImg);
     }
     catch (cv_bridge::Exception& e){
         ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());

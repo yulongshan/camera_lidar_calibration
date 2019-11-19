@@ -233,13 +233,14 @@ public:
         cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
         ROS_ASSERT(fs_cam_config.isOpened());
         K = cv::Mat::zeros(3, 3, CV_64F);
-        D = cv::Mat::zeros(4, 1, CV_64F);
-        fs_cam_config["image_height"] >> image_height;
-        fs_cam_config["image_width"] >> image_width;
+        D = cv::Mat::zeros(5, 1, CV_64F);
+//        fs_cam_config["image_height"] >> image_height;
+//        fs_cam_config["image_width"] >> image_width;
         fs_cam_config["k1"] >> D.at<double>(0);
         fs_cam_config["k2"] >> D.at<double>(1);
         fs_cam_config["p1"] >> D.at<double>(2);
         fs_cam_config["p2"] >> D.at<double>(3);
+        fs_cam_config["k3"] >> D.at<double>(4);
         fs_cam_config["fx"] >> K.at<double>(0, 0);
         fs_cam_config["fy"] >> K.at<double>(1, 1);
         fs_cam_config["cx"] >> K.at<double>(0, 2);

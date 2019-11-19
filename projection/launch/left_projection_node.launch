@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
 
+  <arg name="computer_name" value="usl" />
+
   <param name ="/use_sim_time"
          value="true"/>
   <param name ="result_str"
-         value="/home/usl/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_left.txt"/>
   <param name ="cam_config_file_path"
-         value="/home/usl/catkin_ws/src/camera_lidar_calibration/projection/calib/nerian_left_r_faccal.yaml"/>
+         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_left.yaml"/>
 
   <node  pkg="projection" name="left_projection_node" type="projection_node" output="screen">
 	  <remap from="/image_in" to="/nerian_stereo/left_image"/>

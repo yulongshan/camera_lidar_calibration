@@ -3,11 +3,11 @@
 
         <param name ="/use_sim_time" value="true"/>
         <param name ="cam_config_file_path" 
-               value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_rect_faccal.yaml"/>
+               value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_left.yaml"/>
         <param name ="target_config_file_path"
                value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_1.yaml"/>
-        <param name = "line_length_threshold" value="75"/>
-        <param name = "canny_threshold" value="100"/>
+        <param name = "line_length_threshold" value="50"/>
+        <param name = "canny_threshold" value="200"/>
 
         <node pkg="image_line_detection" type="image_line_detection_node" name="left_image_line_detection" output="screen">
               <remap from="/camera/image" to="/nerian_stereo/left_image"/>
