@@ -11,7 +11,7 @@
     <param name = "y_max" type= "double" value= "1"/>
     <param name = "z_min" type= "double" value= "-0.5"/>
     <param name = "z_max" type= "double" value= "3"/>
-    <param name = "min_pts" type= "int" value= "30"/>
+    <param name = "min_pts" type= "int" value= "0"/>
     <param name = "ransac_threshold" type= "double" value= "0.01"/>
     <param name = "points3d_file_name" value="/home/subodh/catkin_ws/src/camera_lidar_calibration/matlab/points3dplane_edges.csv"/>
     <param name = "remove_outlier" value="false"/>
