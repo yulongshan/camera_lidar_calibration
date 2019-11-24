@@ -27,6 +27,8 @@ double k1, k2, p1, p2, k3;
 int image_width, image_height;
 std::string cam_config_file_path;
 std::string target_config_file_path;
+std::string camera_name;
+
 double side_len;
 struct labelledLine {
     cv::Vec4f line;
@@ -238,7 +240,6 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     cv::Mat tvec(3, 1, CV_64FC1);
 
     cv::solvePnP(objectPoints, imagePoints, K, D, rvec, tvec);
-
     std::vector<cv::Point2f> imagePoints_proj;
     cv::Mat jacobian;
     cv::projectPoints(objectPoints, rvec, tvec, K, D, imagePoints_proj, jacobian, 0);
@@ -280,8 +281,12 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     Eigen::MatrixXd cov_matT = cov_matRT.block(3, 3, 3, 3);
 
     // Careful here, I am publishing the whole rvec instead of publishing C_R_W(:, 3)
-    cv::Mat C_R_W;
-    cv::Rodrigues(rvec, C_R_W);
+    cv::Mat C_R_W_cv;
+    Eigen::Matrix3d C_R_W_eig = Eigen::Matrix3d::Identity();
+    cv::Rodrigues(rvec, C_R_W_cv);
+//    cv::cv2eigen(C_R_W_cv, C_R_W_eig);
+//    Eigen::Vector3d euler_angles = C_R_W_eig.eulerAngles(0, 1, 2)*(180/M_PI);
+//    std::cout << euler_angles.transpose() << std::endl;
     normal_msg::normal n_plane;
     n_plane.header.stamp = global_header.stamp;
     n_plane.a = rvec.at<double>(0);
@@ -301,7 +306,7 @@ std::vector<cv::Point2f> getPose(cv::Point2f pt1,
     // This was for some debugging, can be removed
     if(view_no == 151) {
         ROS_WARN_STREAM("View recorded!!");
-        std::cout << "C_R_W " << "\n" << C_R_W << std::endl;
+        std::cout << "C_R_W " << "\n" << C_R_W_cv << std::endl;
         std::cout << "C_t_W " << "\n" << tvec << std::endl << std::endl;
     }
 
@@ -516,7 +521,7 @@ void drawAndPublishLineSegments(cv::Mat image_in) {
         } else {
             ROS_WARN_STREAM("[drawAndPublishLineSegments]: Not Publishing Lines");
         }
-        cv::imshow("view edges", image_in);
+        cv::imshow(camera_name+"view edges", image_in);
         cv::waitKey(1);
     } else {
         ROS_WARN_STREAM("[drawAndPublishLineSegments]: Less than 4 valid lines..");
@@ -603,8 +608,8 @@ void chooseBestLines(std::vector<cv::Vec4f> lines, cv::Mat image_in) {
             double angle_deg = getAngle(start_pt, end_pt);
 //            std::cout << "Slope: " << angle_deg << std::endl;
         }
-        cv::imshow("image_best_lines", image_best_lines);
-        cv::waitKey(1);
+//        cv::imshow("image_best_lines", image_best_lines);
+//        cv::waitKey(1);
     }
 }
 
@@ -674,8 +679,8 @@ void detectLines(cv::Mat image_in) {
             cv::Point2f end_pt = cv::Point2f(line_l[2], line_l[3]);
             cv::line(image_lines, start_pt, end_pt, cv::Scalar(255, 0, 0), 2, cv::LINE_8);
         }
-        cv::imshow("all lines", image_lines);
-        cv::waitKey(1);
+//        cv::imshow("all lines", image_lines);
+//        cv::waitKey(1);
     }
     if(lines_fld.size() >=4) {
         chooseBestLines(lines_fld, image_in);
@@ -683,8 +688,8 @@ void detectLines(cv::Mat image_in) {
         labelLines('y');
         drawAndPublishLineSegments(image_in);
     } else {
-        cv::imshow("view", image_in);
-        cv::waitKey(1);
+//        cv::imshow("view", image_in);
+//        cv::waitKey(1);
     }
 }
 
@@ -704,24 +709,25 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "image_line_detector");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
     cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
     target_config_file_path = readParam<std::string>(nh, "target_config_file_path");
     line_length_threshold = readParam<int>(nh, "line_length_threshold");
     canny_threshold = readParam<double>(nh, "canny_threshold");
+    camera_name = readParam<std::string>(nh, "camera_name");
     readCameraParams();
     cv::startWindowThread();
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber sub = it.subscribe("/camera/image", 1, imageCallback);
-    normal_pub_lt = nh.advertise<normal_msg::normal>("/normal1", 1);
-    normal_pub_rt = nh.advertise<normal_msg::normal>("/normal2", 1);
-    normal_pub_rb = nh.advertise<normal_msg::normal>("/normal3", 1);
-    normal_pub_lb = nh.advertise<normal_msg::normal>("/normal4", 1);
-    line_pub_lt = nh.advertise<line_msg::line>("/line_image1", 1);
-    line_pub_rt = nh.advertise<line_msg::line>("/line_image2", 1);
-    line_pub_rb = nh.advertise<line_msg::line>("/line_image3", 1);
-    line_pub_lb = nh.advertise<line_msg::line>("/line_image4", 1);
-    normal_pub_chkrbrd = nh.advertise<normal_msg::normal>("/normal_plane", 1);
-    tvec_pub_chkrbrd = nh.advertise<normal_msg::normal>("/tvec_plane", 1);
+    normal_pub_lt = nh.advertise<normal_msg::normal>("/"+camera_name+"/normal1", 1);
+    normal_pub_rt = nh.advertise<normal_msg::normal>("/"+camera_name+"/normal2", 1);
+    normal_pub_rb = nh.advertise<normal_msg::normal>("/"+camera_name+"/normal3", 1);
+    normal_pub_lb = nh.advertise<normal_msg::normal>("/"+camera_name+"/normal4", 1);
+    line_pub_lt = nh.advertise<line_msg::line>("/"+camera_name+"/line_image1", 1);
+    line_pub_rt = nh.advertise<line_msg::line>("/"+camera_name+"/line_image2", 1);
+    line_pub_rb = nh.advertise<line_msg::line>("/"+camera_name+"/line_image3", 1);
+    line_pub_lb = nh.advertise<line_msg::line>("/"+camera_name+"/line_image4", 1);
+    normal_pub_chkrbrd = nh.advertise<normal_msg::normal>("/"+camera_name+"/normal_plane", 1);
+    tvec_pub_chkrbrd = nh.advertise<normal_msg::normal>("/"+camera_name+"/tvec_plane", 1);
     ros::spin();
 }

@@ -3,31 +3,39 @@
 
   <arg name="computer_name" value="usl" />
   <param name = "/use_sim_time" value="true"/>
-  <param name = "max_no_of_plane_views" value="40"/>
-  <param name = "max_no_of_line_views" value="8"/>
-  <param name = "initializeR" value="false"/>
 
-  <param name = "usePlane" value="true"/>
-  <param name = "useLines" value="true"/>
-  <param name = "jointSol" value="false"/>
-  <param name = "planeFirst" value="false"/>
-
-  <param name = "generate_debug_data" value="true"/>
-
-  <param name = "no_of_diff_initializations" value="1"/>
-  <param name = "debug_data_basefilename"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data"/>
-  <param name ="cam_config_file_path"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_right.yaml"/>
-  <param name = "result_str"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/result/C_T_L_right.txt"/>
-  <param name = "initializations_file"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/initializations_right.csv"/>
-  <param name = "results_file"
-         value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_right.csv"/>
   <node  pkg = "calibration"
-         name="right_calibration_node_test_initialization_node_right"
+         name="right_calibration_node"
          type="calibration_node_test_initialization_node" output="screen">
+         <param name = "max_no_of_plane_views" value="5"/>
+         <param name = "max_no_of_line_views" value="10"/>
+         <param name = "initializeR" value="true"/>
+
+         <param name = "usePlane" value="true"/>
+         <param name = "plane_selection_threshold" value="0.95"/>
+         <param name = "useLines" value="true"/>
+         <param name = "jointSol" value="false"/>
+         <param name = "planeFirst" value="false"/>
+
+         <param name = "generate_debug_data" value="true"/>
+
+         <param name = "no_of_diff_initializations" value="1"/>
+         <param name = "debug_data_basefilename" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/right"/>
+         <param name ="cam_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_right.yaml"/>
+         <param name = "result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/C_T_L_right.txt"/>
+         <param name = "initializations_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/initializations_right.csv"/>
+         <param name = "results_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_right.csv"/>
+	     <remap from="/points/plane" to="/velodyne_points/plane"/>
+	     <remap from="/line_image1" to="/right/line_image1"/>
+         <remap from="/line_image2" to="/right/line_image2"/>
+         <remap from="/line_image3" to="/right/line_image3"/>
+         <remap from="/line_image4" to="/right/line_image4"/>
+         <remap from="/normal1" to="/right/normal1"/>
+         <remap from="/normal2" to="/right/normal2"/>
+         <remap from="/normal3" to="/right/normal3"/>
+         <remap from="/normal4" to="/right/normal4"/>
+         <remap from="/normal_plane" to="/right/normal_plane"/>
+         <remap from="/tvec_plane" to="/right/tvec_plane"/>
   </node>
 
 </launch>

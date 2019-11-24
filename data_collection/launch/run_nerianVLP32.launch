@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find nerian_stereo)/launch/nerian_stereo.launch"/>
+  <include file="$(find velodyne_pointcloud)/launch/VLP-32C_points.launch"/>
+  <node type="rviz" name="rviz" pkg="rviz" 
+        args="-d $(find data_collection)/rviz/data_collection.rviz"/>
+</launch>

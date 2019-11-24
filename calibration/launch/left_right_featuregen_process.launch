@@ -1,0 +1,10 @@
+<launch>
+  <!-- LIDAR DATA -->
+  <include file="$(find checkerboard_plane_detection)/launch/checkerboard_VLP_plane_detection_node.launch" />
+  <include file="$(find target_detector)/launch/target_detector_node.launch" />
+  <include file="$(find target_line_detector)/launch/target_line_detector_node.launch" />
+
+  <!-- Camera DATA -->
+  <include file="$(find image_line_detection)/launch/left_image_line_detection.launch" />
+  <include file="$(find image_line_detection)/launch/right_image_line_detection.launch" />
+</launch>
