@@ -76,6 +76,7 @@ private:
     bool remove_outlier;
     double side_len;
     std::string target_config_file_path;
+    int no_of_rings;
 
 public:
     targetDetector(ros::NodeHandle nh_) {
@@ -102,6 +103,7 @@ public:
             ROS_ASSERT(fs_target_config.isOpened());
             fs_target_config["side_len"] >> side_len;
         }
+        no_of_rings = readParam<int>(nh, "no_of_rings");
     }
 
     template <typename T>
@@ -143,9 +145,9 @@ public:
     }
 
     std::vector<std::vector<PointXYZIr> > getRings(pcl::PointCloud<PointXYZIr>::Ptr cloud_in){
-        std::vector<std::vector<PointXYZIr> > rings(32);
+        std::vector<std::vector<PointXYZIr> > rings(no_of_rings);
         for(int i = 0; i < cloud_in->points.size(); i++) {
-            ROS_ASSERT(cloud_in->points[i].ring < 32);
+            ROS_ASSERT(cloud_in->points[i].ring < no_of_rings);
             cloud_in->points[i].yaw = atan2(cloud_in->points[i].y, cloud_in->points[i].x);
             rings[cloud_in->points[i].ring].push_back(cloud_in->points[i]);
         }

@@ -16,6 +16,7 @@
   	<param name = "ransac_threshold_coarse" type= "double" value= "0.05"/>
 	<param name = "ransac_threshold_fine" type= "double" value= "0.01"/>
   	<param name = "remove_outlier" value="true"/>
-  	<param name ="target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_1.yaml"/>
+  	<param name = "target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_1.yaml"/>
+    <param name = "no_of_rings" value="32"/>
   </node>
 </launch>  
