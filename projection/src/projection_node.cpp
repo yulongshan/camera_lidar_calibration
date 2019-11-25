@@ -54,8 +54,12 @@ private:
     Eigen::Matrix3d C_R_L;
     Eigen::Vector3d C_t_L;
 
+    std::string node_name;
+
 public:
-    projectionLidarLines() {
+    projectionLidarLines(ros::NodeHandle n) {
+        node_name = ros::this_node::getName();
+        nh = n;
         cloud_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh, "/cloud_in", 1);
@@ -206,14 +210,15 @@ public:
             double green_field = 255*(max_range - range)/(max_range - min_range);
             cv::circle(image_in, imagePoints[i], 1, cv::Scalar(0, green_field, red_field), -1, 1, 0);
         }
-        cv::imshow("view", image_in);
+        cv::imshow(node_name + "view", image_in);
         cv::waitKey(1);
     }
 };
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "projection_node");
-    projectionLidarLines pLL;
+    ros::NodeHandle nh("~");
+    projectionLidarLines pLL(nh);
     ros::spin();
     return 0;
 }

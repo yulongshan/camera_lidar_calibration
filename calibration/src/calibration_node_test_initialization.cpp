@@ -21,8 +21,16 @@
 #include "ceres/covariance.h"
 
 #include <pcl/io/pcd_io.h>
+#include <pcl/common/eigen.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl/common/transforms.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl_conversions/pcl_conversions.h>
 
+#include <pcl/sample_consensus/ransac.h>
+#include <pcl/sample_consensus/sac_model_plane.h>
+
+#include <pcl/filters/extract_indices.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -99,7 +107,6 @@ private:
 
     bool useLines;
     bool usePlane;
-    bool initializeR;
     bool jointSol;
     bool planeFirst;
 
@@ -127,6 +134,8 @@ private:
     double plane_selection_threshold;
 
     std::vector<Eigen::Vector3d> qualified_r3;
+
+    Eigen::Vector4d centroid_old;
 
     std::string node_name;
 
@@ -259,6 +268,7 @@ public:
                 boost::filesystem::create_directory(folder_name_camera);
             }
         }
+        centroid_old = Eigen::Vector4d(0, 0, 0, 0);
     }
 
     template <typename T>
@@ -366,7 +376,7 @@ public:
             ceres::Solver::Summary summary;
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
-            ROS_INFO_STREAM(node_name << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ROS_INFO_STREAM("[ "<< node_name << " ]: " << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
             ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
             Eigen::MatrixXd C_T_L(3, 4);
             C_T_L.block(0, 0, 3, 3) = Rotn;
@@ -476,7 +486,7 @@ public:
             ceres::Solver::Summary summary;
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
-            ROS_INFO_STREAM(node_name << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ROS_INFO_STREAM("[ "<< node_name << " ]: " << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
             ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
             Eigen::MatrixXd C_T_L(3, 4);
             C_T_L.block(0, 0, 3, 3) = Rotn;
@@ -610,7 +620,7 @@ public:
             ceres::Solver::Summary summary;
             ceres::Solve(options, &problem, &summary);
             tend = time(0);
-            ROS_INFO_STREAM(node_name << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ROS_INFO_STREAM("[ "<< node_name << " ]: " << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
             ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
             Eigen::MatrixXd C_T_L(3, 4);
             C_T_L.block(0, 0, 3, 3) = Rotn;
@@ -750,7 +760,7 @@ public:
             ceres::Solver::Summary summary2;
             ceres::Solve(options2, &problem2, &summary2);
             tend = time(0);
-            ROS_INFO_STREAM(node_name << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
+            ROS_INFO_STREAM("[ "<< node_name << " ]: " << " Time taken for iteration: " <<  i << " is "<< difftime(tend, tstart) << " [s]\n");
             ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
             Eigen::MatrixXd C_T_L(3, 4);
             C_T_L.block(0, 0, 3, 3) = Rotn;
@@ -837,7 +847,7 @@ public:
                     generateCSVFileFromLIDAR(lidar_plane_file_name, plane_pcl);
                     generateCSVFileFromCamera(cam_plane_file_name, C_R_W, tvec);
                 }
-                ROS_INFO_STREAM(node_name << " No of plane views: " << ++no_of_plane_views);
+                ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of plane views: " << ++no_of_plane_views);
                 Nc_old = r3;
             }
             checkStatus();
@@ -873,6 +883,20 @@ public:
             double no_pts_line4 = line_4_pcl.points.size();
             if (no_pts_line1 >= 4 && no_pts_line2 >= 4 &&
                 no_pts_line3 >= 4 && no_pts_line4 >= 4) {
+
+//                Eigen::Vector4d line1_centroid;
+//                pcl::compute3DCentroid(line_1_pcl, line1_centroid);
+//                Eigen::Vector4d line2_centroid;
+//                pcl::compute3DCentroid(line_2_pcl, line2_centroid);
+//                Eigen::Vector4d line3_centroid;
+//                pcl::compute3DCentroid(line_3_pcl, line3_centroid);
+//                Eigen::Vector4d line4_centroid;
+//                pcl::compute3DCentroid(line_4_pcl, line4_centroid);
+//
+//                Eigen::Vector4d centroid_allLines = 0.25*(line1_centroid + line2_centroid +
+//                                                          line3_centroid + line4_centroid);
+
+
                 Eigen::Vector3d normal1 = Eigen::Vector3d(norm1_msg->a,
                                                           norm1_msg->b,
                                                           norm1_msg->c);
@@ -885,6 +909,8 @@ public:
                 Eigen::Vector3d normal4 = Eigen::Vector3d(norm4_msg->a,
                                                           norm4_msg->b,
                                                           norm4_msg->c);
+
+//                double distance = (centroid_allLines.transpose() - centroid_old.transpose()).norm();
 
                 dataFrame line1_datum;
                 line1_datum.lidar_pts = line_1_pcl;
@@ -906,34 +932,34 @@ public:
                 line4_datum.normal = normal4;
                 line4_data.push_back(line4_datum);
 
+//                    centroid_old = centroid_allLines;
                 if(generate_debug_data) {
                     lidar_line1_file_name = debug_data_basefilename +
-                                            "/lines/lidar/line1_"
-                                            +std::to_string(no_of_line_views)+".csv";
+                                                "/lines/lidar/line1_"
+                                                +std::to_string(no_of_line_views)+".csv";
                     lidar_line2_file_name = debug_data_basefilename +
-                                            "/lines/lidar/line2_"
-                                            +std::to_string(no_of_line_views)+".csv";
+                                                "/lines/lidar/line2_"
+                                                +std::to_string(no_of_line_views)+".csv";
                     lidar_line3_file_name = debug_data_basefilename +
-                                            "/lines/lidar/line3_"
-                                            +std::to_string(no_of_line_views)+".csv";
+                                                "/lines/lidar/line3_"
+                                                +std::to_string(no_of_line_views)+".csv";
                     lidar_line4_file_name = debug_data_basefilename +
-                                            "/lines/lidar/line4_"
-                                            +std::to_string(no_of_line_views)+".csv";
+                                                "/lines/lidar/line4_"
+                                                +std::to_string(no_of_line_views)+".csv";
                     generateCSVFileFromLIDAR(lidar_line1_file_name, line_1_pcl);
                     generateCSVFileFromLIDAR(lidar_line2_file_name, line_2_pcl);
                     generateCSVFileFromLIDAR(lidar_line3_file_name, line_3_pcl);
                     generateCSVFileFromLIDAR(lidar_line4_file_name, line_4_pcl);
                 }
-                ROS_INFO_STREAM(node_name << " No of line views: " << ++no_of_line_views);
+                ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of line views: " << ++no_of_line_views);
                 checkStatus();
             } else {
-                ROS_WARN_STREAM(node_name << " Insufficient points in line");
+                ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Insufficient points in line");
             }
         }
     }
 
     void checkStatus() {
-        ROS_WARN_STREAM(node_name << " At Check Status");
         bool lineOnlyCond = !usePlane && useLines && no_of_line_views >= max_no_of_line_views;
         bool planeOnlyCond = usePlane && !useLines && no_of_plane_views >= max_no_of_plane_views;
         bool bothLineAndPlane = usePlane && useLines &&
@@ -942,24 +968,26 @@ public:
 
         if(bothLineAndPlane) {
             if(jointSol) {
-                ROS_WARN_STREAM(node_name << " Solving Joint Optimization");
+                ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Joint Optimization");
                 solvePlaneAndLineJointly();
             } else {
-                ROS_WARN_STREAM(node_name <<" Solving Serially");
+                ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Serially");
                 solvePlaneThenLine();
             }
             logOutput();
         } else if(lineOnlyCond) {
-            ROS_WARN_STREAM(node_name << " Solving Line Optimization Only");
+            ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Line Optimization Only");
             solveLineOptimization();
             logOutput();
         } else if(planeOnlyCond) {
-            ROS_WARN_STREAM(node_name << " Solving Plane Optimization Only");
+            ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Plane Optimization Only");
             solvePlaneOptimization();
             logOutput();
         } else {
-            ROS_INFO_STREAM(node_name << " No of line views: " << no_of_line_views);
-            ROS_INFO_STREAM(node_name << " No of plane views: " << no_of_plane_views);
+            if(useLines)
+                ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of line views: " << no_of_line_views);
+            if(usePlane)
+                ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of plane views: " << no_of_plane_views);
         }
     }
 
@@ -972,12 +1000,12 @@ public:
         std::cout << C_T_L << std::endl;
         std::cout << "RPY = " << Rotn.eulerAngles(0, 1, 2)*180/M_PI << std::endl;
         std::cout << "t = " << C_T_L.block(0, 3, 3, 1) << std::endl;
-        ROS_WARN_STREAM(node_name << " Writing the result");
+        ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Writing the result");
         std::ofstream results;
         results.open(result_str);
         results << C_T_L;
         results.close();
-        ROS_WARN_STREAM(node_name <<" Wrote result to: " << result_str);
+        ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Wrote result to: " << result_str);
         ros::shutdown();
     }
 };
