@@ -13,8 +13,6 @@
          <param name = "usePlane" value="true"/>
          <param name = "plane_selection_threshold" value="0.95"/>
          <param name = "useLines" value="true"/>
-         <param name = "jointSol" value="false"/>
-         <param name = "planeFirst" value="false"/>
 
          <param name = "generate_debug_data" value="true"/>
 
