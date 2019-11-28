@@ -44,9 +44,11 @@ private:
     double dot_prod_high_val;
     int min_points_per_line;
 
+    std::string node_name;
 public:
     targetLineDetector(ros::NodeHandle n) {
         nh = n;
+        node_name = ros::this_node::getName();
         cloud_sub = nh.subscribe("/cloud_in", 1, &targetLineDetector::cloudCallback, this);
         line_1_pub = nh.advertise<sensor_msgs::PointCloud2>("/line1_out", 1);
         line_2_pub = nh.advertise<sensor_msgs::PointCloud2>("/line2_out", 1);
@@ -63,13 +65,11 @@ public:
     template <typename T>
     T readParam(ros::NodeHandle &n, std::string name) {
         T ans;
-        if (n.getParam(name, ans))
-        {
-            ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+        if (n.getParam(name, ans)) {
+            ROS_INFO_STREAM("[" << node_name << "] " << "Loaded " << name << ": " << ans);
         }
-        else
-        {
-            ROS_ERROR_STREAM("Failed to load " << name);
+        else {
+            ROS_ERROR_STREAM("[" << node_name << "] " << " Failed to load " << name);
             n.shutdown();
         }
         return ans;
@@ -150,6 +150,7 @@ public:
     }
 
     void publishLinesInOrder(ros::Time time_stamp, std::string frame_id) {
+        ROS_INFO_STREAM("[ " << node_name << " ] " << "Publishing LIDAR Lines");
         ROS_ASSERT(lls.size() == 4);
         sensor_msgs::PointCloud2 line1_ros, line2_ros, line3_ros, line4_ros;
         for(size_t i = 0; i < 4; i++) {

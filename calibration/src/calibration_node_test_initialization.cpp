@@ -45,6 +45,7 @@
 struct dataFrame {
     pcl::PointCloud<pcl::PointXYZ> lidar_pts;
     Eigen::Vector3d normal;
+    Eigen::Vector3d tvec;
     double noise;
 };
 
@@ -108,7 +109,7 @@ private:
     bool useLines;
     bool usePlane;
 
-    Eigen::Vector3d Nc_old;
+    Eigen::Vector3d r3_old;
 
     std::string initializations_file;
     std::string results_file;
@@ -209,7 +210,7 @@ public:
             max_no_of_plane_views = 0;
         }
 
-        Nc_old = Eigen::Vector3d(0, 0, 0);
+        r3_old = Eigen::Vector3d(0, 0, 0);
 
         Rotn = Eigen::Matrix3d::Zero();
 
@@ -348,7 +349,8 @@ public:
         ceres::LossFunction *loss_function = NULL;
         for(int k = 0; k < plane_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[k].lidar_pts;
-            Eigen::Vector3d normal = plane_data[k].normal;
+            Eigen::Vector3d r3 = plane_data[k].normal;
+            Eigen::Vector3d tvec = plane_data[k].tvec;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
@@ -357,7 +359,7 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-                            (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
+                            (new CalibrationErrorTermPlane(point_3d, r3, tvec, pi_sqrt));
                 problem.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
         }
@@ -521,7 +523,8 @@ public:
         for(int k = 0; k < line1_data.size(); k++) {
             ceres::LossFunction *loss_function = NULL;
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[k].lidar_pts;
-            Eigen::Vector3d normal = plane_data[k].normal;
+            Eigen::Vector3d r3 = plane_data[k].normal;
+            Eigen::Vector3d tvec = plane_data[k].tvec;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
@@ -530,7 +533,7 @@ public:
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
-                            (new CalibrationErrorTermPlane(point_3d, normal, pi_sqrt));
+                            (new CalibrationErrorTermPlane(point_3d, r3, tvec, pi_sqrt));
                 problem1.AddResidualBlock(cost_function, loss_function, R_t.data());
             }
         }
@@ -679,7 +682,6 @@ public:
             tvec.at<double>(0) = tvec_msg->a;
             tvec.at<double>(1) = tvec_msg->b;
             tvec.at<double>(2) = tvec_msg->c;
-            Eigen::Vector3d Nc = (r3.dot(c_t_w))*r3;
 
 //            int no_of_qualified = 0;
 //            for (int count = 0; count < qualified_r3.size(); count++) {
@@ -689,10 +691,12 @@ public:
 //                }
 //            }
 //            if(no_of_plane_views == 0 || no_of_qualified==qualified_r3.size()) {
-            if(r3.dot(Nc_old) < plane_selection_threshold) {
+//            ROS_WARN_STREAM("Dot Prod: " << r3.dot(r3_old));
+            if(r3.dot(r3_old) < plane_selection_threshold) {
                 dataFrame plane_datum;
                 plane_datum.lidar_pts = plane_pcl;
-                plane_datum.normal = Nc;
+                plane_datum.normal = r3;
+                plane_datum.tvec = c_t_w;
                 plane_datum.noise = tvec_msg->w + norm_msg->w;
                 plane_data.push_back(plane_datum);
 //                qualified_r3.push_back(r3);
@@ -707,7 +711,7 @@ public:
                     generateCSVFileFromCamera(cam_plane_file_name, C_R_W, tvec);
                 }
                 ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of plane views: " << ++no_of_plane_views);
-                Nc_old = r3;
+                r3_old = r3;
             }
             checkStatus();
         }

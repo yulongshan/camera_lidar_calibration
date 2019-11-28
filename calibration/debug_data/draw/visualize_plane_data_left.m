@@ -3,7 +3,7 @@ clc;
 files_lidar = dir('../left/plane/lidar/*.csv')
 files_camera = dir('../left/plane/camera/*.csv')
 
-side_len = 0.608;
+side_len = 1.016;
 objectPts_W = [0, 0, 0, 1; 
                0, side_len, 0, 1; 
                side_len, side_len, 0, 1;
@@ -89,3 +89,4 @@ grid;
 axis equal;
 title('Camera Views');
 %%}
+

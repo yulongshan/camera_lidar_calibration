@@ -7,7 +7,7 @@
 	<remap from="/cloud_in" to="/velodyne_points"/>0
     	<remap from="/plane_out" to="/velodyne_points/with_edges/plane"/>
   	<param name = "x_min" type= "double" value= "0.75"/>
-  	<param name = "x_max" type= "double" value= "6"/>
+  	<param name = "x_max" type= "double" value= "5"/>
   	<param name = "y_min" type= "double" value= "-1.5"/>
   	<param name = "y_max" type= "double" value= "1.5"/>
   	<param name = "z_min" type= "double" value= "-1"/>
@@ -16,7 +16,7 @@
   	<param name = "ransac_threshold_coarse" type= "double" value= "0.05"/>
 	<param name = "ransac_threshold_fine" type= "double" value= "0.01"/>
   	<param name = "remove_outlier" value="true"/>
-  	<param name = "target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_1.yaml"/>
+  	<param name = "target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
     <param name = "no_of_rings" value="32"/>
 	<param name = "lidar_name" value="vlp"/>
   </node>

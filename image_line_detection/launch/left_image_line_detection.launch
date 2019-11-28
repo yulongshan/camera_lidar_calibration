@@ -7,7 +7,7 @@
               <param name ="cam_config_file_path"
                        value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_left.yaml"/>
               <param name ="target_config_file_path"
-                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_1.yaml"/>
+                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
               <param name = "line_length_threshold" value="50"/>
               <param name = "canny_threshold" value="200"/>
               <param name = "camera_name" value="left"/>
