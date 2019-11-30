@@ -78,9 +78,11 @@ private:
     std::string target_config_file_path;
     int no_of_rings;
 
+    std::string node_name;
 public:
     targetDetector(ros::NodeHandle nh_) {
         nh = nh_;
+        node_name = ros::this_node::getName();
         cloud_sub = nh.subscribe("/cloud_in", 1,
                                  &targetDetector::callback, this);
         cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/plane_out", 1);
@@ -110,9 +112,9 @@ public:
     T readParam(ros::NodeHandle &n, std::string name){
         T ans;
         if (n.getParam(name, ans)){
-            ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+            ROS_INFO_STREAM("[" << node_name << "] " << " Loaded " << name << ": " << ans);
         } else {
-            ROS_ERROR_STREAM("Failed to load " << name);
+            ROS_ERROR_STREAM("[" << node_name << "] " << " Failed to load " << name);
             n.shutdown();
         }
         return ans;
@@ -186,12 +188,18 @@ public:
                                                             pcl::SampleConsensusModelPlane<PointXYZIr>(cloud_in_ptr));
         pcl::RandomSampleConsensus<PointXYZIr> ransac(model_p);
         ransac.setDistanceThreshold(rnsc_thres);
-        ransac.computeModel();
+        bool model_computed = ransac.computeModel();
         std::vector<int> inlier_indices;
-        ransac.getInliers(inlier_indices);
-        pcl::copyPointCloud<PointXYZIr>(*cloud_in_ptr,
-                                        inlier_indices,
-                                        plane);
+        if (model_computed) {
+            Eigen::VectorXf model_coeffs = ransac.model_coefficients_;
+            ROS_INFO_STREAM("[" << node_name << "] " << model_coeffs.transpose());
+            double n_x = fabs(model_coeffs(0));
+            ROS_INFO_STREAM("N_x: " << n_x);
+            ransac.getInliers(inlier_indices);
+            pcl::copyPointCloud<PointXYZIr>(*cloud_in_ptr,
+                                                inlier_indices,
+                                                plane);
+        }
         return plane;
     }
 
@@ -228,29 +236,30 @@ public:
         pcl::PointCloud<PointXYZIr>::Ptr
                 plane(new pcl::PointCloud<PointXYZIr>);
         *plane = getPlanarPoints(*cloud_filtered_xyz, ransac_threshold_coarse);
-        pcl::PointCloud<PointXYZIr>::Ptr
-                plane_filtered(new pcl::PointCloud<PointXYZIr>);
-        if(remove_outlier) {
-            ROS_WARN_STREAM("[Plane Detection]: Removing Outliers");
-            *plane_filtered = removeOutliers(*plane);
-        } else {
-            ROS_WARN_STREAM("[Plane Detection]: Not Removing Outliers");
-            plane_filtered = plane;
-        }
+        if (plane->points.size() > 0) {
+            pcl::PointCloud<PointXYZIr>::Ptr
+                    plane_filtered(new pcl::PointCloud<PointXYZIr>);
+            if(remove_outlier) {
+                ROS_WARN_STREAM("[" << node_name << "] " << " Removing Outliers");
+                *plane_filtered = removeOutliers(*plane);
+            } else {
+                ROS_WARN_STREAM("[" << node_name << "] " << " Not Removing Outliers");
+                plane_filtered = plane;
+            }
 
-        std::vector<std::vector<PointXYZIr> > rings = getRings(plane_filtered);
-        pcl::PointCloud<PointXYZIr> edge_cloud = getTargetEdges(rings);
+            std::vector<std::vector<PointXYZIr> > rings = getRings(plane_filtered);
+            pcl::PointCloud<PointXYZIr> edge_cloud = getTargetEdges(rings);
 
-        pcl::PointCloud<PointXYZIr>::Ptr
-                edge_plane(new pcl::PointCloud<PointXYZIr>);
-        *edge_plane = getPlanarPoints(edge_cloud, ransac_threshold_fine);
-        sensor_msgs::PointCloud2 cloud_out_ros;
-        ROS_WARN_STREAM("[Plane Detection]: " << edge_plane->points.size());
-        if(edge_plane->points.size() > min_pts) {
-            pcl::toROSMsg(*edge_plane, cloud_out_ros);
-            cloud_out_ros.header.stamp = cloud_msg->header.stamp;
-            cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
-            cloud_pub.publish(cloud_out_ros);
+            pcl::PointCloud<PointXYZIr>::Ptr
+                    edge_plane(new pcl::PointCloud<PointXYZIr>);
+            *edge_plane = getPlanarPoints(edge_cloud, ransac_threshold_fine);
+            sensor_msgs::PointCloud2 cloud_out_ros;
+            if(edge_plane->points.size() > min_pts) {
+                pcl::toROSMsg(*edge_plane, cloud_out_ros);
+                cloud_out_ros.header.stamp = cloud_msg->header.stamp;
+                cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
+                cloud_pub.publish(cloud_out_ros);
+            }
         }
     }
 };

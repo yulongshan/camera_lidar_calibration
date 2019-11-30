@@ -210,7 +210,7 @@ public:
             double green_field = 255*(max_range - range)/(max_range - min_range);
             cv::circle(image_in, imagePoints[i], 1, cv::Scalar(0, green_field, red_field), -1, 1, 0);
         }
-        cv::imshow(node_name + "view", image_in);
+        cv::imshow(node_name + " view", image_in);
         cv::waitKey(1);
     }
 };

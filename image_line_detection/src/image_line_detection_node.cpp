@@ -54,8 +54,8 @@ int view_no = 0;
 int line_no = 0;
 int line_length_threshold;
 double canny_threshold;
-double draw_all_lines = true;
-double draw_best_lines = true;
+double draw_all_lines = false;
+double draw_best_lines = false;
 
 cv::Mat camMat, distMat;
 template <typename T>
@@ -679,8 +679,8 @@ void detectLines(cv::Mat image_in) {
             cv::Point2f end_pt = cv::Point2f(line_l[2], line_l[3]);
             cv::line(image_lines, start_pt, end_pt, cv::Scalar(255, 0, 0), 2, cv::LINE_8);
         }
-//        cv::imshow("all lines", image_lines);
-//        cv::waitKey(1);
+        cv::imshow("all lines", image_lines);
+        cv::waitKey(1);
     }
     if(lines_fld.size() >=4) {
         chooseBestLines(lines_fld, image_in);
@@ -700,7 +700,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         cv::Mat distortedImg = cv_bridge::toCvShare(msg, "bgr8")->image;
         cv::Mat undistortedImg;
         cv::undistort(distortedImg, undistortedImg, camMat, distMat, cv::noArray());
-        detectLines(distortedImg);
+        detectLines(undistortedImg);
     }
     catch (cv_bridge::Exception& e){
         ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());

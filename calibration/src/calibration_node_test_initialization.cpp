@@ -155,6 +155,10 @@ public:
 
         if(useLines) {
             max_no_of_line_views = readParam<int>(nh, "max_no_of_line_views");
+            line1_data.reserve(max_no_of_line_views);
+            line2_data.reserve(max_no_of_line_views);
+            line3_data.reserve(max_no_of_line_views);
+            line4_data.reserve(max_no_of_line_views);
             line1_sub = new
                     message_filters::Subscriber
                             <sensor_msgs::PointCloud2>(nh, "/line1_out", 1);
@@ -191,6 +195,7 @@ public:
 
         if(usePlane) {
             max_no_of_plane_views = readParam<int>(nh, "max_no_of_plane_views");
+            plane_data.reserve(max_no_of_plane_views);
             plane_selection_threshold = readParam<double>(nh, "plane_selection_threshold");
             chkrbrdplane_sub = new
                     message_filters::Subscriber
@@ -416,8 +421,8 @@ public:
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -432,8 +437,8 @@ public:
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -448,8 +453,8 @@ public:
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -518,18 +523,19 @@ public:
 
         R_t_init = R_t;
 
+        ceres::LossFunction *loss_function = NULL;
+
         ceres::Problem problem1;
         problem1.AddParameterBlock(R_t.data(), 6);
-        for(int k = 0; k < line1_data.size(); k++) {
-            ceres::LossFunction *loss_function = NULL;
+        for(int k = 0; k < plane_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[k].lidar_pts;
             Eigen::Vector3d r3 = plane_data[k].normal;
             Eigen::Vector3d tvec = plane_data[k].tvec;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
@@ -538,9 +544,11 @@ public:
             }
         }
         ceres::Solver::Options options1;
+        options1.minimizer_type = ceres::MinimizerType::TRUST_REGION;
         options1.max_num_iterations = 200;
-        options1.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options1.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
         options1.minimizer_progress_to_stdout = false;
+
         ceres::Solver::Summary summary;
         ceres::Solve(options1, &problem1, &summary);
 
@@ -550,12 +558,11 @@ public:
         for(int k = 0; k < line1_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = line1_data[k].lidar_pts;
             Eigen::Vector3d normal = line1_data[k].normal;
-            ceres::LossFunction *loss_function = NULL;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -567,12 +574,11 @@ public:
         for(int k = 0; k < line2_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = line2_data[k].lidar_pts;
             Eigen::Vector3d normal = line2_data[k].normal;
-            ceres::LossFunction *loss_function = NULL;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -584,12 +590,11 @@ public:
         for(int k = 0; k < line3_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = line3_data[k].lidar_pts;
             Eigen::Vector3d normal = line3_data[k].normal;
-            ceres::LossFunction *loss_function = NULL;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -601,12 +606,11 @@ public:
         for(int k = 0; k < line4_data.size(); k++) {
             pcl::PointCloud<pcl::PointXYZ> lidar_pts = line4_data[k].lidar_pts;
             Eigen::Vector3d normal = line4_data[k].normal;
-            ceres::LossFunction *loss_function = NULL;
             double pi_sqrt = 1/sqrt((double)lidar_pts.size());
             for(int j = 0; j < lidar_pts.points.size(); j++){
                 Eigen::Vector3d point_3d(lidar_pts.points[j].x,
-                                             lidar_pts.points[j].y,
-                                             lidar_pts.points[j].z);
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
                 // Add residual here
                 ceres::CostFunction *cost_function = new
                             ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
@@ -615,9 +619,11 @@ public:
             }
         }
         ceres::Solver::Options options2;
+        options2.minimizer_type = ceres::MinimizerType::TRUST_REGION;
         options2.max_num_iterations = 200;
-        options2.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+        options2.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
         options2.minimizer_progress_to_stdout = false;
+
         ceres::Solver::Summary summary2;
         ceres::Solve(options2, &problem2, &summary2);
         tend = time(0);
@@ -629,7 +635,7 @@ public:
         init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
                       << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
         res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
-                     << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << "\n";
+                 << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << "\n";
 
         init_file.close();
         res_file.close();

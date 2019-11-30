@@ -19,8 +19,9 @@ C1_T_C = [0  0 1 0;
           0  0 0 1]; 
 n = length(files_lidar);
 %n = 5;
-figure('Name', 'Left Plane Views')
+origin = [0, 0, 0];
 for i = 1:n
+  figure(i);
   csv_lidar = load((strcat('../left/plane/lidar/', files_lidar(i).name)));
 %{
   csv_lidar = removeOutliers(csv_lidar, 
@@ -45,48 +46,47 @@ for i = 1:n
   xC = objectPts_C1(:, 1);
   yC = objectPts_C1(:, 2);
   zC = objectPts_C1(:, 3);
+  x =[0.2, 0, 0];
+  y =[0, 0.2, 0];
+  z =[0, 0, 0.2];
+  axis_pts_x = [origin; x];
+  axis_pts_y = [origin; y];
+  axis_pts_z = [origin; z];
+  plot3(axis_pts_x(:, 1), axis_pts_x(:, 2), axis_pts_x(:, 3), 'LineWidth', 5, 'r');
+  hold on;
+  plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'g');
+  hold on;
+  plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'b');
+  hold off;
+  grid;
+  axis equal;
+  title('LiDAR Views');
+  
   subplot(122);
   plot3(xC, yC, zC, '-','LineWidth',2,...
     'MarkerSize',10,...
     'MarkerEdgeColor',[color_no, color_no, color_no]);
   hold on
+  x =[0.2, 0, 0];
+  y =[0, -0.2, 0];
+  z =[0, 0, -0.2];
+  axis_pts_x = [origin; x];
+  axis_pts_y = [origin; y];
+  axis_pts_z = [origin; z];
+  plot3(axis_pts_x(:, 1), 
+        axis_pts_x(:, 2), 
+        axis_pts_x(:, 3), 'LineWidth', 5, 'b');
+  hold on;
+  plot3(axis_pts_y(:, 1), 
+        axis_pts_y(:, 2), 
+        axis_pts_y(:, 3), 'LineWidth', 5, 'r');
+  hold on;
+  plot3(axis_pts_z(:, 1), 
+        axis_pts_z(:, 2), 
+        axis_pts_z(:, 3), 'LineWidth', 5, 'g');
+  hold off;
+  grid;
+  axis equal;
+  title('Camera Views');
 %  %}
 end 
-%%{
-origin = [0, 0, 0];
-
-subplot(121);
-x =[0.2, 0, 0];
-y =[0, 0.2, 0];
-z =[0, 0, 0.2];
-axis_pts_x = [origin; x];
-axis_pts_y = [origin; y];
-axis_pts_z = [origin; z];
-plot3(axis_pts_x(:, 1), axis_pts_x(:, 2), axis_pts_x(:, 3), 'LineWidth', 5, 'r');
-hold on;
-plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'g');
-hold on;
-plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'b');
-hold off;
-grid;
-axis equal;
-title('LiDAR Views');
- 
-subplot(122);
-x =[0.2, 0, 0];
-y =[0, -0.2, 0];
-z =[0, 0, -0.2];
-axis_pts_x = [origin; x];
-axis_pts_y = [origin; y];
-axis_pts_z = [origin; z];
-plot3(axis_pts_x(:, 1), axis_pts_x(:, 2), axis_pts_x(:, 3), 'LineWidth', 5, 'b');
-hold on;
-plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'r');
-hold on;
-plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'g');
-hold off;
-grid;
-axis equal;
-title('Camera Views');
-%%}
-
