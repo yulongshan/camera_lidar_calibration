@@ -18,8 +18,8 @@ K = [fx,  0, cx;
       0,  0,  1];
       
 X = 0.12;
-Y = -0.10;
-Z = -0.10;
+Y = -0.15;
+Z = -0.13;
       
 C_T_L = [0 -1  0 X;
          0  0 -1 Y;
@@ -48,7 +48,12 @@ l3_w = [l3_w; ones(1, no_of_line_pts)];
 l4_w = linspace(X3, X4, no_of_line_pts);
 l4_w = [l4_w; ones(1, no_of_line_pts)];
 
-no_of_views = 1;
+Line_dotProd1 = [];
+Line_dotProd2 = [];
+Line_dotProd3 = [];
+Line_dotProd4 = [];
+Plane_dotProduct = [];
+no_of_views = 50;
 for view_no = 1:no_of_views
   roll_mat = getRotX(randn*180/pi);
   pitch_mat = getRotY(randn*180/pi);
@@ -68,13 +73,13 @@ for view_no = 1:no_of_views
   l4_c = C_RT_W*l4_w;
 
   l1_l = L_T_C*l1_c;
-  csvwrite(strcat('l1_l', mat2str(view_no), '.csv'), l1_l');
+  csvwrite(strcat('data/l1_l', mat2str(view_no), '.csv'), l1_l');
   l2_l = L_T_C*l2_c;
-  csvwrite(strcat('l2_l', mat2str(view_no), '.csv'), l2_l');
+  csvwrite(strcat('data/l2_l', mat2str(view_no), '.csv'), l2_l');
   l3_l = L_T_C*l3_c;
-  csvwrite(strcat('l3_l', mat2str(view_no), '.csv'), l3_l');
+  csvwrite(strcat('data/l3_l', mat2str(view_no), '.csv'), l3_l');
   l4_l = L_T_C*l4_c;
-  csvwrite(strcat('l4_l', mat2str(view_no), '.csv'), l4_l');
+  csvwrite(strcat('data/l4_l', mat2str(view_no), '.csv'), l4_l');
 
   plane_3d_pts_w = [];
   for i = 0:0.1:side_len
@@ -88,7 +93,7 @@ for view_no = 1:no_of_views
 
   plane_3d_pts_l = L_T_C*plane_3d_pts_c';
   plane_3d_pts_l = plane_3d_pts_l';
-  csvwrite(strcat('plane_pts_lidar', mat2str(view_no), '.csv'), plane_3d_pts_l);
+  csvwrite(strcat('data/plane_pts_lidar', mat2str(view_no), '.csv'), plane_3d_pts_l);
   
   uvw = K*C_RT_W(1:3,1:4)*objectPts_W';
   uv = uvw./uvw(end, :);
@@ -108,7 +113,7 @@ for view_no = 1:no_of_views
   tvec = CTW;
   
   r3tvec = [r3', tvec'];
-  csvwrite(strcat('r3tvec', mat2str(view_no), '.csv'), r3tvec);
+  csvwrite(strcat('data/r3tvec', mat2str(view_no), '.csv'), r3tvec);
   
   line1 = getLineEquation(pt2d_4, pt2d_1);
   line2 = getLineEquation(pt2d_1, pt2d_2);
@@ -124,16 +129,27 @@ for view_no = 1:no_of_views
                  normal2';
                  normal3';
                  normal4'];
-  csvwrite(strcat('all_normals', mat2str(view_no), '.csv'), all_normals);
+  csvwrite(strcat('data/all_normals', mat2str(view_no), '.csv'), all_normals);
+  x_plane_lidar = plane_3d_pts_l(:,1);
+  y_plane_lidar = plane_3d_pts_l(:,2);
+  z_plane_lidar = plane_3d_pts_l(:,3);
+
+  planar_points_L = [x_plane_lidar';
+                     y_plane_lidar';
+                     z_plane_lidar'];   
+  Line_dotProd1 = [Line_dotProd1, sum(normal1'*(C_R_L*l1_l(1:3,:)+C_t_L))];
+  Line_dotProd2 = [Line_dotProd2, sum(normal2'*(C_R_L*l2_l(1:3,:)+C_t_L))];
+  Line_dotProd3 = [Line_dotProd3, sum(normal3'*(C_R_L*l3_l(1:3,:)+C_t_L))];
+  Line_dotProd4 = [Line_dotProd4, sum(normal4'*(C_R_L*l4_l(1:3,:)+C_t_L))];
+  Plane_dotProduct = [Plane_dotProduct, sum(r3'*(C_R_L*planar_points_L+C_t_L-tvec))];  
 end
 
-x_plane_lidar = plane_3d_pts_l(:,1);
-y_plane_lidar = plane_3d_pts_l(:,2);
-z_plane_lidar = plane_3d_pts_l(:,3);
-
-planar_points_L = [x_plane_lidar';
-                   y_plane_lidar';
-                   z_plane_lidar'];                   
+sum(Line_dotProd1)
+sum(Line_dotProd2)
+sum(Line_dotProd3)
+sum(Line_dotProd4)
+sum(Plane_dotProduct)
+                
 figure(1)
 subplot(131)
 plot3(l1_l(1,:), l1_l(2,:), 
@@ -175,13 +191,7 @@ axis equal;
 xlim([0 img_wdth]);
 ylim([-img_ht, 0]);
 
-
-
 %C_R_L = getRotX(randn*180/pi)*getRotY(randn*180/pi)*getRotZ(randn*180/pi);
 %C_T_L = [randn; randn; randn];
 
-Line_dotProd1 = sum(normal1'*(C_R_L*l1_l(1:3,:)+C_t_L))
-Line_dotProd2 = sum(normal2'*(C_R_L*l2_l(1:3,:)+C_t_L))
-Line_dotProd3 = sum(normal3'*(C_R_L*l3_l(1:3,:)+C_t_L))
-Line_dotProd4 = sum(normal4'*(C_R_L*l4_l(1:3,:)+C_t_L))
-Plane_dotProduct = sum(r3'*(C_R_L*planar_points_L+C_t_L-tvec))              
+            

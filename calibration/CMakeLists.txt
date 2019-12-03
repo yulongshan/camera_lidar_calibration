@@ -28,14 +28,20 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(calibration_node_test_initialization_node src/calibration_node_test_initialization.cpp)
-
 target_link_libraries(calibration_node_test_initialization_node
    ${catkin_LIBRARIES}
    ${CERES_LIBRARIES}
-        ${OpenCV_LIBS}
+   ${OpenCV_LIBS}
+)
+
+add_executable(calibration_simulation_node src/calibration_simulation_node.cpp)
+target_link_libraries(calibration_simulation_node
+   ${catkin_LIBRARIES}
+   ${CERES_LIBRARIES}
+   ${OpenCV_LIBS}
 )
 
