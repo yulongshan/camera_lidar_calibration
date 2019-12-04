@@ -7,10 +7,13 @@
          name="calibration_simulation_node"
          type="calibration_simulation_node"
          output="screen">
-  	     <param name = "max_no_of_plane_views" value="5"/>
-  	     <param name = "max_no_of_line_views" value="15"/>
-
   	     <param name = "usePlane" value="true"/>
   	     <param name = "useLines" value="true"/>
+         <param name = "jointSol" value="true"/>
+         <param name = "no_of_plane_views" value="1"/>
+         <param name = "no_of_line_views" value="1"/>
+         <param name = "base_file_name"
+                value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/simulation/data"/>
+         <param name = "initializeR" value="false"/>
   </node>
 </launch>

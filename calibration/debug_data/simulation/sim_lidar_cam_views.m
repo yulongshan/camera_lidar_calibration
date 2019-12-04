@@ -17,9 +17,9 @@ K = [fx,  0, cx;
       0, fy, cy;
       0,  0,  1];
       
-X = 0.12;
+X = 0.30;
 Y = -0.15;
-Z = -0.13;
+Z = -0.15;
       
 C_T_L = [0 -1  0 X;
          0  0 -1 Y;
@@ -53,17 +53,20 @@ Line_dotProd2 = [];
 Line_dotProd3 = [];
 Line_dotProd4 = [];
 Plane_dotProduct = [];
-no_of_views = 50;
+no_of_views = 1;
 for view_no = 1:no_of_views
-  roll_mat = getRotX(randn*180/pi);
-  pitch_mat = getRotY(randn*180/pi);
-  yaw_mat = getRotZ(randn*180/pi);
+  roll_mat = getRotX(randi([-30, 30]));
+  pitch_mat = getRotY(randi([-30, 30]));
+  yaw_mat = getRotZ(randi([30, 60]));
+  %roll_mat = getRotX(0);
+  %pitch_mat = getRotY(0);
+  %yaw_mat = getRotZ(45);
   CRW = roll_mat*pitch_mat*yaw_mat;
   lim_xy = 0.5;
   lim_z = 3;
   CTW = [2*lim_xy*rand(1, 1)-lim_xy; 
          2*lim_xy*rand(1, 1)-lim_xy;
-           lim_z*rand(1, 1)];
+           lim_z*rand(1, 1) + 3];
 
   C_RT_W = [CRW CTW; 0 0 0 1];
 
@@ -72,13 +75,19 @@ for view_no = 1:no_of_views
   l3_c = C_RT_W*l3_w;
   l4_c = C_RT_W*l4_w;
 
-  l1_l = L_T_C*l1_c;
+  std_line = 0.0;
+  noise_l1 = [std_line*randn(3, 5); zeros(1, 5)];
+  noise_l2 = [std_line*randn(3, 5); zeros(1, 5)];
+  noise_l3 = [std_line*randn(3, 5); zeros(1, 5)];
+  noise_l4 = [std_line*randn(3, 5); zeros(1, 5)];
+
+  l1_l = L_T_C*l1_c+noise_l1;
   csvwrite(strcat('data/l1_l', mat2str(view_no), '.csv'), l1_l');
-  l2_l = L_T_C*l2_c;
+  l2_l = L_T_C*l2_c+noise_l2;
   csvwrite(strcat('data/l2_l', mat2str(view_no), '.csv'), l2_l');
-  l3_l = L_T_C*l3_c;
+  l3_l = L_T_C*l3_c+noise_l3;
   csvwrite(strcat('data/l3_l', mat2str(view_no), '.csv'), l3_l');
-  l4_l = L_T_C*l4_c;
+  l4_l = L_T_C*l4_c+noise_l4;
   csvwrite(strcat('data/l4_l', mat2str(view_no), '.csv'), l4_l');
 
   plane_3d_pts_w = [];
@@ -93,6 +102,13 @@ for view_no = 1:no_of_views
 
   plane_3d_pts_l = L_T_C*plane_3d_pts_c';
   plane_3d_pts_l = plane_3d_pts_l';
+  
+  std_plane = 0.0;
+  noise_plane = [std_plane*randn(size(plane_3d_pts_l, 1), 3), zeros(size(plane_3d_pts_l, 1), 1)];
+  %{
+  noise_plane = 0;
+  %}
+  plane_3d_pts_l = plane_3d_pts_l + noise_plane;
   csvwrite(strcat('data/plane_pts_lidar', mat2str(view_no), '.csv'), plane_3d_pts_l);
   
   uvw = K*C_RT_W(1:3,1:4)*objectPts_W';
@@ -142,6 +158,50 @@ for view_no = 1:no_of_views
   Line_dotProd3 = [Line_dotProd3, sum(normal3'*(C_R_L*l3_l(1:3,:)+C_t_L))];
   Line_dotProd4 = [Line_dotProd4, sum(normal4'*(C_R_L*l4_l(1:3,:)+C_t_L))];
   Plane_dotProduct = [Plane_dotProduct, sum(r3'*(C_R_L*planar_points_L+C_t_L-tvec))];  
+
+  figure(1)
+  subplot(131)
+  plot3(l1_l(1,:), l1_l(2,:), 
+      l1_l(3,:), '*');
+  hold on;
+  plot3(l2_l(1,:), l2_l(2,:), 
+      l2_l(3,:), '+');
+  hold on;
+  plot3(l3_l(1,:), l3_l(2,:), 
+      l3_l(3,:), '.');
+  hold on;
+  plot3(l4_l(1,:), l4_l(2,:), 
+      l4_l(3,:), 'd');
+  hold on;
+  grid;
+  axis equal;
+  xlim([0, 7]);
+  ylim([-2, 2]);
+
+  subplot(132)
+  plot3(plane_3d_pts_l(:,1), plane_3d_pts_l(:,2), 
+      plane_3d_pts_l(:,3), '*');
+  hold on;    
+  grid;
+  axis equal;
+  xlim([0, 7]);
+  ylim([-3, 3]);
+
+  subplot(133)
+  plot(l1_pt2d(1, :), -l1_pt2d(2, :), '*');
+  hold on;
+  plot(l2_pt2d(1, :), -l2_pt2d(2, :), '+');
+  hold on;
+  plot(l3_pt2d(1, :), -l3_pt2d(2, :), '.');
+  hold on;
+  plot(l4_pt2d(1, :), -l4_pt2d(2, :), 'd');
+  hold on;
+  grid;
+  axis equal;
+
+  xlim([0 img_wdth]);
+  ylim([-img_ht, 0]);
+
 end
 
 sum(Line_dotProd1)
@@ -150,46 +210,7 @@ sum(Line_dotProd3)
 sum(Line_dotProd4)
 sum(Plane_dotProduct)
                 
-figure(1)
-subplot(131)
-plot3(l1_l(1,:), l1_l(2,:), 
-      l1_l(3,:), '*');
-hold on;
-plot3(l2_l(1,:), l2_l(2,:), 
-      l2_l(3,:), '+');
-hold on;
-plot3(l3_l(1,:), l3_l(2,:), 
-      l3_l(3,:), '.');
-hold on;
-plot3(l4_l(1,:), l4_l(2,:), 
-      l4_l(3,:), 'd');
-hold off;
-grid;
-axis equal;
-xlim([0, 4]);
-ylim([-2, 2]);
 
-subplot(132)
-plot3(plane_3d_pts_l(:,1), plane_3d_pts_l(:,2), 
-      plane_3d_pts_l(:,3), '*');
-grid;
-axis equal;
-xlim([0, 6]);
-ylim([-3, 3]);
-
-subplot(133)
-plot(l1_pt2d(1, :), -l1_pt2d(2, :), '*');
-hold on;
-plot(l2_pt2d(1, :), -l2_pt2d(2, :), '+');
-hold on;
-plot(l3_pt2d(1, :), -l3_pt2d(2, :), '.');
-hold on;
-plot(l4_pt2d(1, :), -l4_pt2d(2, :), 'd');
-hold off;
-grid;
-axis equal;
-xlim([0 img_wdth]);
-ylim([-img_ht, 0]);
 
 %C_R_L = getRotX(randn*180/pi)*getRotY(randn*180/pi)*getRotZ(randn*180/pi);
 %C_T_L = [randn; randn; randn];
