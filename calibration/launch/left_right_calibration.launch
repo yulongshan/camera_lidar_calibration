@@ -1,5 +1,0 @@
-<launch>
-  <!-- Calibration -->
-  <include file="$(find calibration)/launch/calibration_test_initialization_left.launch" />
-  <include file="$(find calibration)/launch/calibration_test_initialization_right.launch" />
-</launch>

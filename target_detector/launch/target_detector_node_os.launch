@@ -3,19 +3,19 @@
   <arg name="computer_name" value="usl" />
   <param name = "/use_sim_time" value="true"/>
 
-  <node  pkg="target_detector" name="rotate_os_cloud_node" type="rotate_cloud_node" output="screen">
+  <node  pkg="target_detector" name="rotate_os_cloud_node_target_detector" type="rotate_cloud_node" output="screen">
 	<remap from="/cloud_in" to="/os1_cloud_node/points"/>0
-    	<remap from="/cloud_out" to="/os1_cloud_node/points/rotated"/>
+    	<remap from="/cloud_out" to="/os1_cloud_node/points/rotated_2"/>
   </node>
 
   <node  pkg="target_detector" name="target_detector_node_os" type="target_detector_node" output="screen">
-	<remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>0
+	<remap from="/cloud_in" to="/os1_cloud_node/points/rotated_2"/>0
     	<remap from="/plane_out" to="/os1_cloud_node/points/rotated/with_edges/plane"/>
   	<param name = "x_min" type= "double" value= "0.75"/>
   	<param name = "x_max" type= "double" value= "5.0"/>
   	<param name = "y_min" type= "double" value= "-1.5"/>
   	<param name = "y_max" type= "double" value= "1.5"/>
-  	<param name = "z_min" type= "double" value= "-1"/>
+  	<param name = "z_min" type= "double" value= "-1.5"/>
   	<param name = "z_max" type= "double" value= "3"/>
   	<param name = "min_pts" type= "int" value= "0"/>
   	<param name = "ransac_threshold_coarse" type= "double" value= "0.05"/>

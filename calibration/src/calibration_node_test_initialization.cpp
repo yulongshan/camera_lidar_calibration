@@ -669,6 +669,7 @@ public:
     void callbackPlane(const sensor_msgs::PointCloud2ConstPtr &plane_msg,
                        const normal_msg::normalConstPtr &norm_msg,
                        const normal_msg::normalConstPtr &tvec_msg) {
+        ROS_INFO_STREAM("At Plane Callback");
         if(usePlane && no_of_plane_views < max_no_of_plane_views) {
             pcl::PointCloud<pcl::PointXYZ> plane_pcl;
             pcl::fromROSMsg(*plane_msg, plane_pcl);
@@ -731,6 +732,7 @@ public:
                        const normal_msg::normalConstPtr &norm2_msg,
                        const normal_msg::normalConstPtr &norm3_msg,
                        const normal_msg::normalConstPtr &norm4_msg) {
+        ROS_INFO_STREAM("At Line Callback");
         if(useLines && no_of_line_views < max_no_of_line_views) {
             pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
             pcl::fromROSMsg(*line1_msg, line_1_pcl);

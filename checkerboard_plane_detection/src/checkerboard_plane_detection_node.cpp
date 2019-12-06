@@ -63,7 +63,6 @@ private:
 
     int view_no;
     std::ofstream points3d_file;
-    std::string points3d_file_name;
     bool remove_outlier;
     double side_len;
     std::string target_config_file_path;
@@ -84,7 +83,6 @@ public:
         min_pts = readParam<int>(nh, "min_pts");
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
         view_no = 0;
-        points3d_file_name = readParam<std::string>(nh, "points3d_file_name");
         remove_outlier = readParam<bool>(nh, "remove_outlier");
         if (remove_outlier) {
             target_config_file_path =
@@ -202,18 +200,6 @@ public:
             cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
             cloud_pub.publish(cloud_out_ros);
 
-        }
-        if (view_no==75) {
-
-            points3d_file.open(points3d_file_name.c_str());
-            for(int i = 0; i < plane->points.size(); i++) {
-                double X = plane->points[i].x;
-                double Y = plane->points[i].y;
-                double Z = plane->points[i].z;
-                points3d_file << X << "," << Y << "," << Z << "\n";
-            }
-            ROS_WARN_STREAM("Collected Data..");
-            points3d_file.close();
         }
     }
 };
