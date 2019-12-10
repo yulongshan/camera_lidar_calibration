@@ -55,6 +55,7 @@ private:
     Eigen::Vector3d C_t_L;
 
     std::string node_name;
+    double x_threshold;
 
 public:
     projectionLidarLines(ros::NodeHandle n) {
@@ -76,7 +77,7 @@ public:
 
         result_str = readParam<std::string>(nh, "result_str");
         cam_config_file_path = readParam<std::string>(nh, "cam_config_file_path");
-
+        x_threshold = readParam<double>(nh, "x_threshold");
         cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
         ROS_ASSERT(fs_cam_config.isOpened());
         K = cv::Mat::zeros(3, 3, CV_64F);
@@ -147,7 +148,6 @@ public:
         imagePoints.clear();
 
         cv::Mat image_in;
-
         try {
             image_in = cv_bridge::toCvShare(image_msg, "bgr8")->image;
         }
@@ -164,7 +164,7 @@ public:
 
         for(int i = 0; i < cloud_pcl.points.size(); i++) {
 
-            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > 6)
+            if(cloud_pcl.points[i].x < 0 || cloud_pcl.points[i].x > x_threshold)
                 continue;
 
             Eigen::Vector4d pointCloud_L;
@@ -205,10 +205,12 @@ public:
             double X = objectPoints_C[i].x;
             double Y = objectPoints_C[i].y;
             double Z = objectPoints_C[i].z;
+
             double range = sqrt(X*X + Y*Y + Z*Z);
             double red_field = 255*(range - min_range)/(max_range - min_range);
             double green_field = 255*(max_range - range)/(max_range - min_range);
-            cv::circle(image_in, imagePoints[i], 1, cv::Scalar(0, green_field, red_field), -1, 1, 0);
+
+            cv::circle(image_in, imagePoints[i], 2, cv::Scalar(0, red_field, green_field), -1, 1, 0);
         }
         cv::imshow(node_name + " view", image_in);
         cv::waitKey(1);

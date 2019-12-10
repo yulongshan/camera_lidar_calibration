@@ -10,7 +10,7 @@ n = length(files1);
 scale = 1;
 
 for i = 1:n
-  figure(i)
+  figure(1)
   csv1 = load((strcat('../left/lines/lidar/', files1(i).name)));
   xP1 = csv1(:, 1); yP1 = csv1(:, 2); zP1 = csv1(:, 3);
 %  [A1, B1] = fit3DLine(csv1);
@@ -83,7 +83,7 @@ for i = 1:n
   plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'g');
   hold on;
   plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'b');
-  hold off;
+  hold on;
   grid;
   axis equal;
 

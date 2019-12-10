@@ -1,4 +1,0 @@
-<launch>
-  <include file="$(find projection)/launch/left_projection_node.launch" />
-  <include file="$(find projection)/launch/right_projection_node.launch" />
-</launch>

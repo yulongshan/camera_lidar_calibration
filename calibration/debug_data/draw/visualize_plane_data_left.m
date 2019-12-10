@@ -21,7 +21,7 @@ n = length(files_lidar);
 %n = 5;
 origin = [0, 0, 0];
 for i = 1:n
-  figure(i);
+  figure(1);
   csv_lidar = load((strcat('../left/plane/lidar/', files_lidar(i).name)));
 %{
   csv_lidar = removeOutliers(csv_lidar, 
@@ -57,12 +57,11 @@ for i = 1:n
   plot3(axis_pts_y(:, 1), axis_pts_y(:, 2), axis_pts_y(:, 3), 'LineWidth', 5, 'g');
   hold on;
   plot3(axis_pts_z(:, 1), axis_pts_z(:, 2), axis_pts_z(:, 3), 'LineWidth', 5, 'b');
-  hold off;
+  hold on;
   grid;
   axis equal;
   title('LiDAR Views');
-  
-  subplot(122);
+    subplot(122);
   plot3(xC, yC, zC, '-','LineWidth',2,...
     'MarkerSize',10,...
     'MarkerEdgeColor',[color_no, color_no, color_no]);
@@ -84,9 +83,11 @@ for i = 1:n
   plot3(axis_pts_z(:, 1), 
         axis_pts_z(:, 2), 
         axis_pts_z(:, 3), 'LineWidth', 5, 'g');
-  hold off;
+  hold on;
   grid;
   axis equal;
   title('Camera Views');
 %  %}
 end 
+
+

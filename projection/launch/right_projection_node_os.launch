@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <include file="$(find calibration)/launch/rotate_os_cloud.launch" />
+  <arg name="computer_name" value="usl" />
+  <param name ="/use_sim_time" value="true"/>
+  <node  pkg="projection" name="right_projection_node" type="projection_node" output="screen">
+    <remap from="/image_in" to="/nerian_stereo/right_image"/>
+    <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+    <param name ="result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/draw/C_T_L_right.txt"/>
+    <param name ="cam_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_right.yaml"/>
+    <param name="x_threshold" value="10"/>
+
+  </node>
+
+</launch>

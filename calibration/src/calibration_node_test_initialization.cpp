@@ -108,6 +108,7 @@ private:
 
     bool useLines;
     bool usePlane;
+    bool jointSol;
 
     Eigen::Vector3d r3_old;
 
@@ -137,6 +138,7 @@ private:
     Eigen::Vector4d centroid_old;
 
     std::string node_name;
+
 
 public:
     calib(ros::NodeHandle n) {
@@ -213,6 +215,10 @@ public:
             sync2->registerCallback(boost::bind(&calib::callbackPlane, this, _1, _2, _3));
         } else {
             max_no_of_plane_views = 0;
+        }
+
+        if (useLines && usePlane) {
+            jointSol = readParam<bool>(nh, "jointSol");
         }
 
         r3_old = Eigen::Vector3d(0, 0, 0);
@@ -642,6 +648,138 @@ public:
         ros::shutdown();
     }
 
+    void solveJointly() {
+        init_file.open(initializations_file);
+        res_file.open(results_file);
+
+        time_t tstart, tend;
+        tstart = time(0);
+        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
+//            addGaussianNoise(transformation_matrix);
+        Rotn = transformation_matrix.block(0, 0, 3, 3);
+
+        ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
+        translation = transformation_matrix.block(0, 3, 3, 1);
+
+        R_t = Eigen::VectorXd(6);
+        R_t(0) = axis_angle(0);
+        R_t(1) = axis_angle(1);
+        R_t(2) = axis_angle(2);
+        R_t(3) = translation(0);
+        R_t(4) = translation(1);
+        R_t(5) = translation(2);
+
+        R_t_init = R_t;
+
+        ceres::LossFunction *loss_function = NULL;
+
+        ceres::Problem problem;
+        problem.AddParameterBlock(R_t.data(), 6);
+        for(int k = 0; k < plane_data.size(); k++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = plane_data[k].lidar_pts;
+            Eigen::Vector3d r3 = plane_data[k].normal;
+            Eigen::Vector3d tvec = plane_data[k].tvec;
+            double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+            for(int j = 0; j < lidar_pts.points.size(); j++){
+                Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
+                // Add residual here
+                ceres::CostFunction *cost_function = new
+                        ceres::AutoDiffCostFunction<CalibrationErrorTermPlane, 1, 6>
+                        (new CalibrationErrorTermPlane(point_3d, r3, tvec, pi_sqrt));
+                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+            }
+        }
+
+        problem.AddParameterBlock(R_t.data(), 6);
+        for(int k = 0; k < line1_data.size(); k++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line1_data[k].lidar_pts;
+            Eigen::Vector3d normal = line1_data[k].normal;
+            double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+            for(int j = 0; j < lidar_pts.points.size(); j++){
+                Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
+                // Add residual here
+                ceres::CostFunction *cost_function = new
+                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                        (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+            }
+        }
+
+        for(int k = 0; k < line2_data.size(); k++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line2_data[k].lidar_pts;
+            Eigen::Vector3d normal = line2_data[k].normal;
+            double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+            for(int j = 0; j < lidar_pts.points.size(); j++){
+                Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
+                // Add residual here
+                ceres::CostFunction *cost_function = new
+                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                        (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+            }
+        }
+
+        for(int k = 0; k < line3_data.size(); k++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line3_data[k].lidar_pts;
+            Eigen::Vector3d normal = line3_data[k].normal;
+            double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+            for(int j = 0; j < lidar_pts.points.size(); j++){
+                Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
+                // Add residual here
+                ceres::CostFunction *cost_function = new
+                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                        (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+            }
+        }
+
+        for(int k = 0; k < line4_data.size(); k++) {
+            pcl::PointCloud<pcl::PointXYZ> lidar_pts = line4_data[k].lidar_pts;
+            Eigen::Vector3d normal = line4_data[k].normal;
+            double pi_sqrt = 1/sqrt((double)lidar_pts.size());
+            for(int j = 0; j < lidar_pts.points.size(); j++){
+                Eigen::Vector3d point_3d(lidar_pts.points[j].x,
+                                         lidar_pts.points[j].y,
+                                         lidar_pts.points[j].z);
+                // Add residual here
+                ceres::CostFunction *cost_function = new
+                        ceres::AutoDiffCostFunction<CalibrationErrorTermLine, 1, 6>
+                        (new CalibrationErrorTermLine(point_3d, normal, pi_sqrt));
+                problem.AddResidualBlock(cost_function, loss_function, R_t.data());
+            }
+        }
+        ceres::Solver::Options options;
+        options.minimizer_type = ceres::MinimizerType::TRUST_REGION;
+        options.max_num_iterations = 200;
+        options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;
+        options.minimizer_progress_to_stdout = false;
+
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem, &summary);
+        tend = time(0);
+        ROS_INFO_STREAM("[ "<< node_name << " ]: " << " Time taken for iteration: " << difftime(tend, tstart) << " [s]\n");
+        ceres::AngleAxisToRotationMatrix(R_t.data(), Rotn.data());
+        Eigen::MatrixXd C_T_L(3, 4);
+        C_T_L.block(0, 0, 3, 3) = Rotn;
+        C_T_L.block(0, 3, 3, 1) = Eigen::Vector3d(R_t[3], R_t[4], R_t[5]);
+        init_file << R_t_init(0) << "," << R_t_init(1) << "," << R_t_init(2) << ","
+                  << R_t_init(3) << "," << R_t_init(4) << "," << R_t_init(5) << "\n";
+        res_file << R_t(0) << "," << R_t(1) << "," << R_t(2) << ","
+                 << R_t(3) << "," << R_t(4) << "," << R_t(5) << "," << "\n";
+
+        init_file.close();
+        res_file.close();
+        ros::shutdown();
+    }
+
     void generateCSVFileFromLIDAR(std::string filename,
                                   pcl::PointCloud<pcl::PointXYZ> cloud_data_pcl) {
         std::ofstream csv_file;
@@ -763,49 +901,62 @@ public:
                                                           norm4_msg->b,
                                                           norm4_msg->c);
 
-//                double distance = (centroid_allLines.transpose() - centroid_old.transpose()).norm();
+                Eigen::Vector4d centroid_l1;
+                pcl::compute3DCentroid(line_1_pcl, centroid_l1);
+                Eigen::Vector4d centroid_l2;
+                pcl::compute3DCentroid(line_2_pcl, centroid_l2);
+                Eigen::Vector4d centroid_l3;
+                pcl::compute3DCentroid(line_3_pcl, centroid_l3);
+                Eigen::Vector4d centroid_l4;
+                pcl::compute3DCentroid(line_4_pcl, centroid_l4);
+                Eigen::Vector4d centroid_allLines = 0.25*(centroid_l1+centroid_l2+centroid_l3+centroid_l4);
+                double distance = (centroid_allLines.transpose() - centroid_old.transpose()).norm();
 
-                dataFrame line1_datum;
-                line1_datum.lidar_pts = line_1_pcl;
-                line1_datum.normal = normal1;
-                line1_data.push_back(line1_datum);
+                if (distance >= 0.0) {
+                    dataFrame line1_datum;
+                    line1_datum.lidar_pts = line_1_pcl;
+                    line1_datum.normal = normal1;
+                    line1_data.push_back(line1_datum);
 
-                dataFrame line2_datum;
-                line2_datum.lidar_pts = line_2_pcl;
-                line2_datum.normal = normal2;
-                line2_data.push_back(line2_datum);
+                    dataFrame line2_datum;
+                    line2_datum.lidar_pts = line_2_pcl;
+                    line2_datum.normal = normal2;
+                    line2_data.push_back(line2_datum);
 
-                dataFrame line3_datum;
-                line3_datum.lidar_pts = line_3_pcl;
-                line3_datum.normal = normal3;
-                line3_data.push_back(line3_datum);
+                    dataFrame line3_datum;
+                    line3_datum.lidar_pts = line_3_pcl;
+                    line3_datum.normal = normal3;
+                    line3_data.push_back(line3_datum);
 
-                dataFrame line4_datum;
-                line4_datum.lidar_pts = line_4_pcl;
-                line4_datum.normal = normal4;
-                line4_data.push_back(line4_datum);
+                    dataFrame line4_datum;
+                    line4_datum.lidar_pts = line_4_pcl;
+                    line4_datum.normal = normal4;
+                    line4_data.push_back(line4_datum);
 
-//                    centroid_old = centroid_allLines;
-                if(generate_debug_data) {
-                    lidar_line1_file_name = debug_data_basefilename +
+                    centroid_old = centroid_allLines;
+                    if(generate_debug_data) {
+                        lidar_line1_file_name = debug_data_basefilename +
                                                 "/lines/lidar/line1_"
                                                 +std::to_string(no_of_line_views)+".csv";
-                    lidar_line2_file_name = debug_data_basefilename +
+                        lidar_line2_file_name = debug_data_basefilename +
                                                 "/lines/lidar/line2_"
                                                 +std::to_string(no_of_line_views)+".csv";
-                    lidar_line3_file_name = debug_data_basefilename +
+                        lidar_line3_file_name = debug_data_basefilename +
                                                 "/lines/lidar/line3_"
                                                 +std::to_string(no_of_line_views)+".csv";
-                    lidar_line4_file_name = debug_data_basefilename +
+                        lidar_line4_file_name = debug_data_basefilename +
                                                 "/lines/lidar/line4_"
                                                 +std::to_string(no_of_line_views)+".csv";
-                    generateCSVFileFromLIDAR(lidar_line1_file_name, line_1_pcl);
-                    generateCSVFileFromLIDAR(lidar_line2_file_name, line_2_pcl);
-                    generateCSVFileFromLIDAR(lidar_line3_file_name, line_3_pcl);
-                    generateCSVFileFromLIDAR(lidar_line4_file_name, line_4_pcl);
+                        generateCSVFileFromLIDAR(lidar_line1_file_name, line_1_pcl);
+                        generateCSVFileFromLIDAR(lidar_line2_file_name, line_2_pcl);
+                        generateCSVFileFromLIDAR(lidar_line3_file_name, line_3_pcl);
+                        generateCSVFileFromLIDAR(lidar_line4_file_name, line_4_pcl);
+                    }
+                    ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of line views: " << ++no_of_line_views);
+                    checkStatus();
+                } else {
+                    ROS_WARN_STREAM("[ "<< node_name << " ]: " << " The frames are too close!");
                 }
-                ROS_INFO_STREAM("[ "<< node_name << " ]: " << " No of line views: " << ++no_of_line_views);
-                checkStatus();
             } else {
                 ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Insufficient points in line");
             }
@@ -820,8 +971,14 @@ public:
                                 no_of_line_views >= max_no_of_line_views;
 
         if(bothLineAndPlane) {
-            ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Serially");
-            solvePlaneThenLine();
+            if(jointSol) {
+                ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Jointly");
+                solveJointly();
+            }
+            else {
+                ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Serially");
+                solvePlaneThenLine();
+            }
             logOutput();
         } else if(lineOnlyCond) {
             ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Line Optimization Only");

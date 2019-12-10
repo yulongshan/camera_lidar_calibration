@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <param name = "/use_sim_time" value="true"/>
+
+  <node  pkg = "motion_detector"
+         name="motion_detector_node_left"
+         type="motion_detector_node"
+         output="screen">
+	 <remap from="/tvec_in" to="/left/tvec_plane"/>
+	 <remap from="/rvec_in" to="/left/normal_plane"/>
+  </node>
+</launch>
