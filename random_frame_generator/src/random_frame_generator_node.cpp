@@ -41,40 +41,33 @@ private:
     ros::NodeHandle nh_;
     image_transport::ImageTransport it_;
     ros::Publisher cloud_pub_;
-    image_transport::Publisher image_left_pub_;
-    image_transport::Publisher image_right_pub_;
+    image_transport::Publisher image_pub_;
 
-    std::string image_left_folder_name;
-    std::string image_right_folder_name;
+    std::string image_folder_name;
     std::string pointcloud_folder_name;
 
     std::string lidar_output_topic_name;
-    std::string image_left_topic_name;
-    std::string image_right_topic_name;
+    std::string image_output_topic_name;
 
     int output_fps;
     bool randomize_frames;
+    std::string lidar_frame_id;
 
 public:
-    frameGenerator(): it_(nh_) {
-        image_left_folder_name =
-                readParam<std::string>(nh_, "image_left_folder_name");
-        image_right_folder_name =
-                readParam<std::string>(nh_, "image_right_folder_name");
+    frameGenerator(ros::NodeHandle n): it_(nh_) {
+        nh_ = n;
+        image_folder_name =
+                readParam<std::string>(nh_, "image_folder_name");
         pointcloud_folder_name =
                 readParam<std::string>(nh_, "pointcloud_folder_name");
         lidar_output_topic_name =
                 readParam<std::string>(nh_, "lidar_output_topic_name");
-        image_left_topic_name =
-                readParam<std::string>(nh_, "image_left_topic_name");
-        image_right_topic_name =
-                readParam<std::string>(nh_, "image_right_topic_name");
-        output_fps =
-                readParam<int>(nh_, "output_fps");
-        cloud_pub_ =
-                nh_.advertise<sensor_msgs::PointCloud2>(lidar_output_topic_name, 1);
-        image_left_pub_ = it_.advertise(image_left_topic_name, 1);
-        image_right_pub_ = it_.advertise(image_right_topic_name, 1);
+        image_output_topic_name =
+                readParam<std::string>(nh_, "image_output_topic_name");
+        output_fps = readParam<int>(nh_, "output_fps");
+        cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>(lidar_output_topic_name, 1);
+        image_pub_ = it_.advertise(image_output_topic_name, 1);
+        lidar_frame_id = readParam<std::string>(nh_, "lidar_frame_id");
         randomize_frames = readParam<bool>(nh_, "randomize_frames");
         ROS_INFO_STREAM("Press [ENTER] to continue");
         std::cin.get();
@@ -95,17 +88,15 @@ public:
     }
 
     void readData() {
-        std::vector<cv::String> filenamesImgLeft, filenamesImgRight;
+        std::vector<cv::String> filenamesImg;
         std::vector<cv::String> filenamesPCD;
 
-        cv::glob(image_left_folder_name + "/*.png", filenamesImgLeft);
-        cv::glob(image_right_folder_name + "/*.png", filenamesImgRight);
+        cv::glob(image_folder_name + "/*.png", filenamesImg);
         cv::glob(pointcloud_folder_name + "/*.pcd", filenamesPCD);
 
-        ROS_ASSERT(filenamesImgLeft.size() == filenamesImgRight.size());
-        ROS_ASSERT(filenamesPCD.size() == filenamesImgLeft.size());
+        ROS_ASSERT(filenamesPCD.size() == filenamesImg.size());
 
-        int no_of_frames = filenamesImgLeft.size();
+        int no_of_frames = filenamesImg.size();
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist6(0,
@@ -146,27 +137,21 @@ public:
             }
             ros::Time current_time = ros::Time::now();
             int query_integer = random_numbers[i];
-            cv::Mat image_left = cv::imread(filenamesImgLeft[query_integer]);
-            cv::Mat image_right = cv::imread(filenamesImgRight[query_integer]);
+            cv::Mat image_in = cv::imread(filenamesImg[query_integer]);
             pcl::PointCloud<PointXYZIr>::Ptr
                     cloud (new pcl::PointCloud<PointXYZIr>);
             pcl::io::loadPCDFile<PointXYZIr>(filenamesPCD[query_integer], *cloud);
 
-            sensor_msgs::ImagePtr msg_left =
+            sensor_msgs::ImagePtr msg_ros =
                     cv_bridge::CvImage(std_msgs::Header(), "bgr8",
-                                       image_left).toImageMsg();
-            sensor_msgs::ImagePtr msg_right =
-                    cv_bridge::CvImage(std_msgs::Header(), "bgr8",
-                                       image_right).toImageMsg();
-            msg_left->header.stamp = current_time;
-            msg_right->header.stamp = current_time;
+                                       image_in).toImageMsg();
+            msg_ros->header.stamp = current_time;
             sensor_msgs::PointCloud2 cloud_ros;
             pcl::toROSMsg(*cloud, cloud_ros);
-            cloud_ros.header.frame_id = "velodyne";
+            cloud_ros.header.frame_id = lidar_frame_id;
             cloud_ros.header.stamp = current_time;
 
-            image_left_pub_.publish(msg_left);
-            image_right_pub_.publish(msg_right);
+            image_pub_.publish(msg_ros);
             cloud_pub_.publish(cloud_ros);
             loop_rate.sleep();
             i++;
@@ -178,7 +163,8 @@ public:
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "frame_generator");
-    frameGenerator fG;
+    ros::NodeHandle nh("~");
+    frameGenerator fG(nh);
     ros::spin();
     return 0;
 }

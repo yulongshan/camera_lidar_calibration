@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <param name = "/use_sim_time" value="true"/>
+    <node  pkg = "motion_detector"
+           name="motion_detector_node_left"
+           type="motion_detector_node"
+           output="screen">
+        <remap from="/tvec_in" to="/left/tvec_plane"/>
+        <remap from="/rvec_in" to="/left/normal_plane"/>
+        <remap from="/image_in" to="/nerian_stereo/left_image"/>
+        <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+        <param name="data_folder_name" value="$(find motion_detector)/data/left_os"/>
+    </node>
+</launch>

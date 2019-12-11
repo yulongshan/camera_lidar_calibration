@@ -8,8 +8,11 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   normal_msg
   line_msg
+  cv_bridge
+  pcl_ros
 )
 
+find_package( PCL REQUIRED)
 find_package( OpenCV REQUIRED )
 
 catkin_package(
@@ -21,6 +24,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 

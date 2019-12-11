@@ -8,5 +8,8 @@
          output="screen">
 	 <remap from="/tvec_in" to="/left/tvec_plane"/>
 	 <remap from="/rvec_in" to="/left/normal_plane"/>
+     <remap from="/image_in" to="/nerian_stereo/left_image"/>
+     <remap from="/cloud_in" to="/velodyne_points"/>
+     <param name="data_folder_name" value="$(find motion_detector)/data/left_VLP"/>
   </node>
 </launch>
