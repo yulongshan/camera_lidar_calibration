@@ -38,4 +38,3 @@ target_link_libraries(${PROJECT_NAME}_node
    ${OpenCV_LIBS}
    ${Boost_LIBRARIES}
 )
-

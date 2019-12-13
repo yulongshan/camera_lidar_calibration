@@ -7,10 +7,10 @@
 	<remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>0
     	<remap from="/plane_out" to="/os1_cloud_node/points/rotated/with_edges/plane"/>
   	<param name = "x_min" type= "double" value= "0.75"/>
-  	<param name = "x_max" type= "double" value= "5.0"/>
-  	<param name = "y_min" type= "double" value= "-1.5"/>
-  	<param name = "y_max" type= "double" value= "1.5"/>
-  	<param name = "z_min" type= "double" value= "-1.5"/>
+  	<param name = "x_max" type= "double" value= "6.0"/>
+  	<param name = "y_min" type= "double" value= "-2"/>
+  	<param name = "y_max" type= "double" value= "2"/>
+  	<param name = "z_min" type= "double" value= "-1"/>
   	<param name = "z_max" type= "double" value= "3"/>
   	<param name = "min_pts" type= "int" value= "0"/>
   	<param name = "ransac_threshold_coarse" type= "double" value= "0.05"/>

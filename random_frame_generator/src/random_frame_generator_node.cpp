@@ -126,9 +126,13 @@ public:
         }
 
         ROS_WARN_STREAM("RANDOM no size: " << random_numbers.size());
-        ros::Rate loop_rate(output_fps);
+        ROS_WARN_STREAM("Output fps: " << output_fps);
         int i = 0;
         ros::Time present_time, previous_time;
+        ROS_INFO_STREAM("No of frames: " << no_of_frames);
+
+        ros::Rate loop_rate(output_fps);
+
         while (ros::ok() && i < no_of_frames) {
             present_time = ros::Time::now();
             if (i!=0) {
@@ -141,7 +145,6 @@ public:
             pcl::PointCloud<PointXYZIr>::Ptr
                     cloud (new pcl::PointCloud<PointXYZIr>);
             pcl::io::loadPCDFile<PointXYZIr>(filenamesPCD[query_integer], *cloud);
-
             sensor_msgs::ImagePtr msg_ros =
                     cv_bridge::CvImage(std_msgs::Header(), "bgr8",
                                        image_in).toImageMsg();
@@ -150,7 +153,6 @@ public:
             pcl::toROSMsg(*cloud, cloud_ros);
             cloud_ros.header.frame_id = lidar_frame_id;
             cloud_ros.header.stamp = current_time;
-
             image_pub_.publish(msg_ros);
             cloud_pub_.publish(cloud_ros);
             loop_rate.sleep();

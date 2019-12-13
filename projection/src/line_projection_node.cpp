@@ -33,7 +33,11 @@ typedef message_filters::sync_policies::ApproximateTime
          sensor_msgs::PointCloud2,
          sensor_msgs::PointCloud2,
          sensor_msgs::PointCloud2,
-         sensor_msgs::PointCloud2> SyncPolicy;
+         sensor_msgs::PointCloud2> SyncPolicy1;
+
+typedef message_filters::sync_policies::ApproximateTime
+        <sensor_msgs::PointCloud2,
+         sensor_msgs::Image> SyncPolicy2;
 
 class projectionLidarLines {
 private:
@@ -48,9 +52,11 @@ private:
     message_filters::Subscriber<sensor_msgs::PointCloud2> *line3_cloud_sub;
     message_filters::Subscriber<sensor_msgs::PointCloud2> *line4_cloud_sub;
 
-    ros::Subscriber image_sub;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *edge_cloud_sub;
+    message_filters::Subscriber<sensor_msgs::Image> *image_sub;
 
-    message_filters::Synchronizer<SyncPolicy> *sync;
+    message_filters::Synchronizer<SyncPolicy1> *sync1;
+    message_filters::Synchronizer<SyncPolicy2> *sync2;
 
     std::string result_str;
     std::string cam_config_file_path;
@@ -71,9 +77,9 @@ private:
     double dist_avg;
     int no_of_frames;
 
-    cv::Mat image_in;
 public:
-    projectionLidarLines() {
+    projectionLidarLines(ros::NodeHandle n) {
+        nh = n;
         createSubscribers();
 
 
@@ -83,13 +89,14 @@ public:
         cv::FileStorage fs_cam_config(cam_config_file_path, cv::FileStorage::READ);
         ROS_ASSERT(fs_cam_config.isOpened());
         K = cv::Mat::zeros(3, 3, CV_64F);
-        D = cv::Mat::zeros(4, 1, CV_64F);
+        D = cv::Mat::zeros(5, 1, CV_64F);
         fs_cam_config["image_height"] >> image_height;
         fs_cam_config["image_width"] >> image_width;
         fs_cam_config["k1"] >> D.at<double>(0);
         fs_cam_config["k2"] >> D.at<double>(1);
         fs_cam_config["p1"] >> D.at<double>(2);
         fs_cam_config["p2"] >> D.at<double>(3);
+        fs_cam_config["k3"] >> D.at<double>(4);
         fs_cam_config["fx"] >> K.at<double>(0, 0);
         fs_cam_config["fy"] >> K.at<double>(1, 1);
         fs_cam_config["cx"] >> K.at<double>(0, 2);
@@ -151,9 +158,17 @@ public:
         line4_cloud_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh, "/line4_out", 1);
-        image_sub = nh.subscribe("/image_in", 1, &projectionLidarLines::imageSubscriber, this);
-        sync = new message_filters::Synchronizer
-                <SyncPolicy>(SyncPolicy(10),
+
+        edge_cloud_sub = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh, "/edge_cloud_in", 1);
+
+        image_sub = new
+                message_filters::Subscriber
+                        <sensor_msgs::Image>(nh, "/image_in", 1);
+
+        sync1 = new message_filters::Synchronizer
+                <SyncPolicy1>(SyncPolicy1(10),
                               *line1_image_sub,
                               *line2_image_sub,
                               *line3_image_sub,
@@ -162,9 +177,16 @@ public:
                               *line2_cloud_sub,
                               *line3_cloud_sub,
                               *line4_cloud_sub);
-        sync->registerCallback(boost::bind(&projectionLidarLines::callback,
+        sync1->registerCallback(boost::bind(&projectionLidarLines::callbackLines,
                                             this, _1, _2, _3, _4,
                                                   _5, _6, _7, _8));
+
+        sync2 = new message_filters::Synchronizer
+                <SyncPolicy2>(SyncPolicy2(10),
+                              *edge_cloud_sub,
+                              *image_sub);
+        sync2->registerCallback(boost::bind(&projectionLidarLines::callback,
+                                            this, _1, _2));
     }
 
     template <typename T>
@@ -186,31 +208,31 @@ public:
         std::vector<cv::Point3d> objectPoints_L;
         std::vector<cv::Point2d> imagePoints;
         for(int i = 0; i < cloud_in.points.size(); i++) {
-            if(cloud_in.points[i].x < 0 || cloud_in.points[i].x > 3)
-                continue;
-
+//            if(cloud_in.points[i].x < 0 || cloud_in.points[i].x > 3)
+//                continue;
+//
             Eigen::Vector4d pointCloud_L;
             pointCloud_L[0] = cloud_in.points[i].x;
             pointCloud_L[1] = cloud_in.points[i].y;
             pointCloud_L[2] = cloud_in.points[i].z;
             pointCloud_L[3] = 1;
-
-            Eigen::Vector3d pointCloud_C;
-            pointCloud_C = C_T_L.block(0, 0, 3, 4) * pointCloud_L;
-
-            double X = pointCloud_C[0];
-            double Y = pointCloud_C[1];
-            double Z = pointCloud_C[2];
-
-            double Xangle = atan2(X, Z)*180/CV_PI;
-            double Yangle = atan2(Y, Z)*180/CV_PI;
-
-
-            if(Xangle < -fov_x/2 || Xangle > fov_x/2)
-                continue;
-
-            if(Yangle < -fov_y/2 || Yangle > fov_y/2)
-                continue;
+//
+//            Eigen::Vector3d pointCloud_C;
+//            pointCloud_C = C_T_L.block(0, 0, 3, 4) * pointCloud_L;
+//
+//            double X = pointCloud_C[0];
+//            double Y = pointCloud_C[1];
+//            double Z = pointCloud_C[2];
+//
+//            double Xangle = atan2(X, Z)*180/CV_PI;
+//            double Yangle = atan2(Y, Z)*180/CV_PI;
+//
+//
+//            if(Xangle < -fov_x/2 || Xangle > fov_x/2)
+//                continue;
+//
+//            if(Yangle < -fov_y/2 || Yangle > fov_y/2)
+//                continue;
             objectPoints_L.push_back(cv::Point3d(pointCloud_L[0], pointCloud_L[1], pointCloud_L[2]));
         }
         if(objectPoints_L.size() > 0)
@@ -252,16 +274,7 @@ public:
         double dist = fabs(a*x_0+b*y_0+c)/sqrt(a*a+b*b);
     }
 
-    void imageSubscriber(const sensor_msgs::ImageConstPtr& image_msg) {
-        try {
-            image_in = cv_bridge::toCvShare(image_msg, "bgr8")->image;
-        }
-        catch (cv_bridge::Exception& e) {
-            ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image_msg->encoding.c_str());
-        }
-    }
-
-    void callback(const line_msg::lineConstPtr& line1_img_msg,
+    void callbackLines(const line_msg::lineConstPtr& line1_img_msg,
                   const line_msg::lineConstPtr& line2_img_msg,
                   const line_msg::lineConstPtr& line3_img_msg,
                   const line_msg::lineConstPtr& line4_img_msg,
@@ -280,10 +293,6 @@ public:
         cv::Point2f line3_end = cv::Point2f(line3_img_msg->a2, line3_img_msg->b2);
         cv::Point2f line4_start = cv::Point2f(line4_img_msg->a1, line4_img_msg->b1);
         cv::Point2f line4_end = cv::Point2f(line4_img_msg->a2, line4_img_msg->b2);
-        cv::line(image_in, line1_start, line1_end, cv::Scalar(0, 255, 255), 2, cv::LINE_8);
-        cv::line(image_in, line2_start, line2_end, cv::Scalar(0, 255, 255), 2, cv::LINE_8);
-        cv::line(image_in, line3_start, line3_end, cv::Scalar(0, 255, 255), 2, cv::LINE_8);
-        cv::line(image_in, line4_start, line4_end, cv::Scalar(0, 255, 255), 2, cv::LINE_8);
 
         pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
         pcl::fromROSMsg(*line1_cloud_msg, line_1_pcl);
@@ -307,42 +316,59 @@ public:
         double distance1 = 0;
         for(int i = 0; i < imagePts1.size(); i++){
             distance1 += distanceFromLine(line1, imagePts1[i]);
-            cv::circle(image_in, imagePts1[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
         distance1 = distance1/imagePts1.size();
 
         double distance2 = 0;
         for(int i = 0; i < imagePts2.size(); i++){
             distance2 += distanceFromLine(line2, imagePts2[i]);
-            cv::circle(image_in, imagePts2[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
         distance2 = distance2/imagePts2.size();
 
         double distance3 = 0;
         for(int i = 0; i < imagePts3.size(); i++){
             distance3 += distanceFromLine(line3, imagePts3[i]);
-            cv::circle(image_in, imagePts3[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
         distance3 = distance3/imagePts3.size();
 
         double distance4 = 0;
         for(int i = 0; i < imagePts4.size(); i++){
             distance4 += distanceFromLine(line4, imagePts4[i]);
-            cv::circle(image_in, imagePts4[i], 5, cv::Scalar(171, 171, 0), -1, 1, 0);
         }
         distance4 = distance4/imagePts4.size();
 
         dist_avg += (distance1 + distance2 + distance3 + distance4)/4;
         ROS_WARN_STREAM("Avg Reproj Error: " << dist_avg/no_of_frames);
+//        ROS_WARN_STREAM("Avg Reproj Error: " << dist_avg);
+    }
 
-        cv::imshow("image view", image_in);
-        cv::waitKey(30);
+    void callback(const sensor_msgs::PointCloud2ConstPtr& edge_cloud_msg,
+                  const sensor_msgs::ImageConstPtr& image_msg){
+        cv::Mat image_in;
+        try
+        {
+            image_in = cv_bridge::toCvShare(image_msg, "bgr8")->image;
+            cv::waitKey(30);
+        }
+        catch (cv_bridge::Exception& e)
+        {
+            ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image_msg->encoding.c_str());
+        }
+        pcl::PointCloud<pcl::PointXYZ> edge_cloud_pcl;
+        pcl::fromROSMsg(*edge_cloud_msg, edge_cloud_pcl);
+        std::vector<cv::Point2d> imagePts = getProjectedPts(edge_cloud_pcl);
+        for (int i = 0; i < imagePts.size(); i++) {
+            cv::circle(image_in, imagePts[i], 3, cv::Scalar(0, 0, 255), -1, 1, 0);
+        }
+        cv::imshow("edge projection", image_in);
+        cv::waitKey(1);
     }
 };
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "line_projection_node");
-    projectionLidarLines pLL;
+    ros::NodeHandle nh("~");
+    projectionLidarLines pLL(nh);
     ros::spin();
     return 0;
 }

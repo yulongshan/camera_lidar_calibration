@@ -80,6 +80,7 @@ private:
     std::string camera_name;
     std::string lidar_name;
     int no_of_rest_frames;
+    int buffer_size;
 
 public:
     motionDetector(ros::NodeHandle _nh) {
@@ -112,6 +113,7 @@ public:
         boost::filesystem::create_directory(image_folder_name);
         boost::filesystem::remove_all(lidar_folder_name);
         boost::filesystem::create_directory(lidar_folder_name);
+        buffer_size = readParam<int>(nh_, "buffer_size");
 
         // Assume that we start at rest
         state = false;
@@ -145,10 +147,11 @@ public:
     }
 
     void storeFrames() {
+        ROS_INFO_STREAM("Storing Motionless Frames");
         int frame_no = 0;
         int no_of_frames = rest_images.size();
+        ROS_ASSERT(no_of_frames > 0);
         frame_no = no_of_frames/2;
-
         std::string left_image_name = "/frame" + std::to_string(no_of_rest_frames) + ".png";
         std::string pointcloud_name = "/pointcloud" + std::to_string(no_of_rest_frames) + ".pcd";
         pcl::io::savePCDFile(lidar_folder_name+pointcloud_name,
@@ -156,6 +159,7 @@ public:
                              Eigen::Quaternionf::Identity (), true);
         no_of_rest_frames++;
         imwrite(image_folder_name+left_image_name, rest_images[frame_no]);
+        ROS_INFO_STREAM("Stored Motionless Frames");
     }
 
     void callback(const normal_msg::normalConstPtr &tvec_msg,
@@ -191,14 +195,14 @@ public:
         xyz_rpy(5) = rvec_msg->c;
 
         pose3D_queue.push_back(xyz_rpy);
-        if(pose3D_queue.size() == 10) {
+        if(pose3D_queue.size() == buffer_size) {
             std::vector<double> px;
             std::vector<double> py;
             std::vector<double> pz;
             std::vector<double> rx;
             std::vector<double> ry;
             std::vector<double> rz;
-            for(int i = 0; i < 10; i++) {
+            for(int i = 0; i < buffer_size; i++) {
                 Eigen::VectorXd pose3D = pose3D_queue[i];
 //                std::cout << pose3D.transpose() << std::endl;
                 px.push_back(pose3D(0));
@@ -224,9 +228,12 @@ public:
 
             if (state && !old_state) {
                 ROS_WARN_STREAM("State Transition from Rest to Motion");
-                storeFrames();
-                rest_lidar_data.clear();
-                rest_images.clear();
+                ROS_ASSERT(rest_lidar_data.size() == rest_images.size());
+                if (rest_lidar_data.size() > 0) {
+                    storeFrames();
+                    rest_lidar_data.clear();
+                    rest_images.clear();
+                }
             }
 
             if (!state && old_state) {
@@ -237,13 +244,14 @@ public:
                 ROS_INFO_STREAM("At Motion");
             }
             else {
-                ROS_INFO_STREAM("At Rest");
+                ROS_WARN_STREAM("At Rest");
                 rest_lidar_data.push_back(*cloud_msg);
                 rest_images.push_back(image_in);
             }
             pose3D_queue.erase(pose3D_queue.begin());
         }
         old_state = state;
+        ROS_INFO_STREAM("No of still frames: " << no_of_rest_frames);
     }
 };
 

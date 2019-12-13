@@ -393,7 +393,6 @@ public:
 
         init_file.close();
         res_file.close();
-        ros::shutdown();
     }
 
     void solveLineOptimization() {
@@ -402,18 +401,18 @@ public:
 
         time_t tstart, tend;
         tstart = time(0);
-        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
-//            addGaussianNoise(transformation_matrix);
-        Rotn = transformation_matrix.block(0, 0, 3, 3);
-        ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
-        translation = transformation_matrix.block(0, 3, 3, 1);
-        R_t = Eigen::VectorXd(6);
-        R_t(0) = axis_angle(0);
-        R_t(1) = axis_angle(1);
-        R_t(2) = axis_angle(2);
-        R_t(3) = translation(0);
-        R_t(4) = translation(1);
-        R_t(5) = translation(2);
+//        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
+////            addGaussianNoise(transformation_matrix);
+//        Rotn = transformation_matrix.block(0, 0, 3, 3);
+//        ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
+//        translation = transformation_matrix.block(0, 3, 3, 1);
+//        R_t = Eigen::VectorXd(6);
+//        R_t(0) = axis_angle(0);
+//        R_t(1) = axis_angle(1);
+//        R_t(2) = axis_angle(2);
+//        R_t(3) = translation(0);
+//        R_t(4) = translation(1);
+//        R_t(5) = translation(2);
 
         R_t_init = R_t;
 
@@ -503,7 +502,6 @@ public:
 
         init_file.close();
         res_file.close();
-        ros::shutdown();
     }
 
     void solvePlaneThenLine() {
@@ -645,7 +643,6 @@ public:
 
         init_file.close();
         res_file.close();
-        ros::shutdown();
     }
 
     void solveJointly() {
@@ -777,7 +774,6 @@ public:
 
         init_file.close();
         res_file.close();
-        ros::shutdown();
     }
 
     void generateCSVFileFromLIDAR(std::string filename,
@@ -974,10 +970,12 @@ public:
             if(jointSol) {
                 ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Jointly");
                 solveJointly();
+                logOutput();
             }
             else {
                 ROS_WARN_STREAM("[ "<< node_name << " ]: " << " Solving Serially");
                 solvePlaneThenLine();
+                logOutput();
             }
             logOutput();
         } else if(lineOnlyCond) {
