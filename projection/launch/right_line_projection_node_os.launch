@@ -1,0 +1,14 @@
+<launch>
+  <arg name="computer_name" value="usl" />
+  <param name ="/use_sim_time" value="true"/>
+  <node  pkg="projection" name="line_right_os_projection_node" type="line_projection_node" output="screen">
+    <remap from="/line_image1" to="/right/line_image1"/>
+    <remap from="/line_image2" to="/right/line_image2"/>
+    <remap from="/line_image3" to="/right/line_image3"/>
+    <remap from="/line_image4" to="/right/line_image4"/>
+    <remap from="/edge_cloud_in" to="/os1_cloud_node/points/rotated/with_edges/plane"/>
+    <remap from="/image_in" to="/nerian_stereo/right_image"/>
+    <param name ="result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/draw/C_T_L_right.txt"/>
+    <param name ="cam_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_right.yaml"/>
+  </node>
+</launch>

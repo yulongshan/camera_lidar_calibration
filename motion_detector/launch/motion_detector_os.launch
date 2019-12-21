@@ -1,0 +1,98 @@
+<launch>
+    <arg name="computer_name" value="usl" />
+
+    <include file="$(find calibration)/launch/rotate_os_cloud.launch" />
+
+    <node  pkg="checkerboard_plane_detection" name="checkerboard_plane_detection_os" type="checkerboard_plane_detection_node" output="screen">
+        <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+        <remap from="/plane_out" to="/os1_cloud_node/points/plane"/>
+        <remap from="/plane_out_flag" to="/os1_cloud_node/plane_flag"/>
+        <param name = "x_min" type= "double" value= "0.75"/>
+        <param name = "x_max" type= "double" value= "6"/>
+        <param name = "y_min" type= "double" value= "-2"/>
+        <param name = "y_max" type= "double" value= "2"/>
+        <param name = "z_min" type= "double" value= "-1"/>
+        <param name = "z_max" type= "double" value= "300"/>
+        <param name = "min_pts" type= "int" value= "150"/>
+        <param name = "ransac_threshold" type= "double" value= "0.01"/>
+        <param name = "remove_outlier" value="true"/>
+        <param name ="target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
+    </node>
+
+    <node  pkg="target_detector" name="target_detector_node_os" type="target_detector_node" output="screen">
+        <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>0
+        <remap from="/plane_out" to="/os1_cloud_node/points/rotated/with_edges/plane"/>
+        <param name = "x_min" type= "double" value= "0.75"/>
+        <param name = "x_max" type= "double" value= "6.0"/>
+        <param name = "y_min" type= "double" value= "-2"/>
+        <param name = "y_max" type= "double" value= "2"/>
+        <param name = "z_min" type= "double" value= "-1"/>
+        <param name = "z_max" type= "double" value= "3"/>
+        <param name = "min_pts" type= "int" value= "16"/>
+        <param name = "ransac_threshold_coarse" type= "double" value= "0.05"/>
+        <param name = "ransac_threshold_fine" type= "double" value= "0.01"/>
+        <param name = "remove_outlier" value="true"/>
+        <param name = "target_config_file_path" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
+        <param name = "no_of_rings" value="64"/>
+        <param name = "lidar_name" value="os"/>
+    </node>
+
+    <node  pkg="target_line_detector" name="target_line_detector_node_os" type="target_line_detector_node" output="screen">
+        <remap from="/cloud_in" to="/os1_cloud_node/points/rotated/with_edges/plane"/>
+        <param name = "dot_prod_high_val" value="0.90"/>
+        <param name = "dot_prod_low_val" value="0.10" />
+        <param name = "ransac_threshold" value="0.02" />
+        <param name = "min_points_per_line" value="4" />
+    </node>
+
+    <node pkg="image_line_detection" type="image_line_detection_node" name="left_image_line_detection" output="screen">
+          <remap from="/camera/image" to="/nerian_stereo/left_image"/>
+          <param name ="cam_config_file_path"
+                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_left.yaml"/>
+          <param name ="target_config_file_path"
+                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
+          <param name = "line_length_threshold" value="50"/>
+          <param name = "canny_threshold" value="200"/>
+          <param name = "camera_name" value="left"/>
+    </node>
+
+    <node pkg="image_line_detection" type="image_line_detection_node" name="right_image_line_detection" output="screen">
+          <remap from="/camera/image" to="/nerian_stereo/right_image"/>
+          <param name ="cam_config_file_path"
+                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/nerian_passthru_faccal_right.yaml"/>
+          <param name ="target_config_file_path"
+                       value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
+          <param name = "line_length_threshold" value="50"/>
+          <param name = "canny_threshold" value="200"/>
+          <param name = "camera_name" value="right"/>
+    </node>
+
+    <node pkg = "motion_detector"
+          name="motion_detector_node_left"
+          type="motion_detector_node"
+          output="screen">
+          <remap from="/tvec_in" to="/left/tvec_plane"/>
+          <remap from="/rvec_in" to="/left/normal_plane"/>
+          <remap from="/image_in" to="/nerian_stereo/left_image"/>
+          <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+          <remap from="/plane_in" to="/os1_cloud_node/points/plane"/>
+          <remap from="/lines_in" to="/line1_out"/>
+          <param name="data_folder_name" value="$(find motion_detector)/data/left_os"/>
+          <param name="buffer_size" value="10"/>
+    </node>
+
+    <node pkg = "motion_detector"
+         name="motion_detector_node_right"
+         type="motion_detector_node"
+         output="screen">
+	     <remap from="/tvec_in" to="/right/tvec_plane"/>
+	     <remap from="/rvec_in" to="/right/normal_plane"/>
+         <remap from="/image_in" to="/nerian_stereo/right_image"/>
+         <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+         <remap from="/plane_in" to="/os1_cloud_node/points/plane"/>
+         <remap from="/lines_in" to="/line1_out"/>
+         <param name="data_folder_name" value="$(find motion_detector)/data/right_os"/>
+         <param name="buffer_size" value="10"/>
+  </node>
+
+</launch>

@@ -19,6 +19,8 @@
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/filters/extract_indices.h>
 
+#include <std_msgs/Bool.h>
+
 struct lineWithLabel {
     pcl::PointCloud<pcl::PointXYZI> line_pts;
     char labelZ;
@@ -34,6 +36,7 @@ private:
     ros::Publisher line_2_pub;
     ros::Publisher line_3_pub;
     ros::Publisher line_4_pub;
+    ros::Publisher lines_pub_flag;
 
     std::vector<lineWithLabel> lls;
 
@@ -54,7 +57,7 @@ public:
         line_2_pub = nh.advertise<sensor_msgs::PointCloud2>("/line2_out", 1);
         line_3_pub = nh.advertise<sensor_msgs::PointCloud2>("/line3_out", 1);
         line_4_pub = nh.advertise<sensor_msgs::PointCloud2>("/line4_out", 1);
-
+        lines_pub_flag = nh.advertise<std_msgs::Bool>("/lines_flag", 1);
         dot_prod_low_val = readParam<double>(nh, "dot_prod_low_val");
         dot_prod_high_val = readParam<double>(nh, "dot_prod_high_val");
         ransac_threshold = readParam<double>(nh, "ransac_threshold");
@@ -88,26 +91,6 @@ public:
             }
         }
         pcl::copyPointCloud<pcl::PointXYZI>(cloud_in, outliers_indicies, cloud_out);
-    }
-
-    void publishLines (pcl::PointCloud<pcl::PointXYZI> line1_pcl,
-                       pcl::PointCloud<pcl::PointXYZI> line2_pcl,
-                       pcl::PointCloud<pcl::PointXYZI> line3_pcl,
-                       pcl::PointCloud<pcl::PointXYZI> line4_pcl,
-                       ros::Time time_stamp, std::string frame_id) {
-        sensor_msgs::PointCloud2 line1_ros, line2_ros, line3_ros, line4_ros;
-        pcl::toROSMsg(line1_pcl, line1_ros);
-        pcl::toROSMsg(line2_pcl, line2_ros);
-        pcl::toROSMsg(line3_pcl, line3_ros);
-        pcl::toROSMsg(line4_pcl, line4_ros);
-        line1_ros.header.frame_id = line2_ros.header.frame_id =
-        line3_ros.header.frame_id = line4_ros.header.frame_id = frame_id;
-        line1_ros.header.stamp = line2_ros.header.stamp =
-        line3_ros.header.stamp = line4_ros.header.stamp = time_stamp;
-        line_1_pub.publish(line1_ros);
-        line_2_pub.publish(line2_ros);
-        line_3_pub.publish(line3_ros);
-        line_4_pub.publish(line4_ros);
     }
 
     Eigen::Vector3d getCentroid(pcl::PointCloud<pcl::PointXYZI> cloud_in) {
@@ -149,10 +132,14 @@ public:
         }
     }
 
-    void publishLinesInOrder(ros::Time time_stamp, std::string frame_id) {
+    bool publishLinesInOrder(ros::Time time_stamp, std::string frame_id) {
         ROS_INFO_STREAM("[ " << node_name << " ] " << "Publishing LIDAR Lines");
         ROS_ASSERT(lls.size() == 4);
         sensor_msgs::PointCloud2 line1_ros, line2_ros, line3_ros, line4_ros;
+        bool line1_flag = false;
+        bool line2_flag = false;
+        bool line3_flag = false;
+        bool line4_flag = false;
         for(size_t i = 0; i < 4; i++) {
             char labelZ = lls[i].labelZ;
             char labelY = lls[i].labelY;
@@ -161,36 +148,42 @@ public:
                 if(lls[i].line_pts.points.size() > 0) {
                     line1_ros.header.stamp = time_stamp;
                     line1_ros.header.frame_id = frame_id;
-                    line_1_pub.publish(line1_ros);
+                    line1_flag = true;
                 }
             }
-
             if(labelZ == 'b' && labelY == 'r') {
                 pcl::toROSMsg(lls[i].line_pts, line2_ros);
                 if(lls[i].line_pts.points.size() > 0) {
                     line2_ros.header.stamp = time_stamp;
                     line2_ros.header.frame_id = frame_id;
-                    line_2_pub.publish(line2_ros);
+                    line2_flag = true;
                 }
             }
-
             if(labelZ == 't' && labelY == 'r') {
                 pcl::toROSMsg(lls[i].line_pts, line3_ros);
                 if(lls[i].line_pts.points.size() > 0) {
                     line3_ros.header.stamp = time_stamp;
                     line3_ros.header.frame_id = frame_id;
-                    line_3_pub.publish(line3_ros);
+                    line3_flag = true;
                 }
             }
-
             if(labelZ == 't' && labelY == 'l') {
                 pcl::toROSMsg(lls[i].line_pts, line4_ros);
                 if(lls[i].line_pts.points.size() > 0) {
                     line4_ros.header.stamp = time_stamp;
                     line4_ros.header.frame_id = frame_id;
-                    line_4_pub.publish(line4_ros);
+                    line4_flag = true;
                 }
             }
+        }
+        if(line1_flag && line2_flag && line3_flag && line4_flag) {
+            line_1_pub.publish(line1_ros);
+            line_2_pub.publish(line2_ros);
+            line_3_pub.publish(line3_ros);
+            line_4_pub.publish(line4_ros);
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -282,7 +275,14 @@ public:
                 }
                 labelLines('z');
                 labelLines('y');
-                publishLinesInOrder(time_stamp, frame_id);
+                bool flag_data = publishLinesInOrder(time_stamp, frame_id);
+                std_msgs::Bool flag;
+                flag.data = flag_data;
+                lines_pub_flag.publish(flag);
+            } else {
+                std_msgs::Bool flag;
+                flag.data = false;
+                lines_pub_flag.publish(flag);
             }
         }
     }

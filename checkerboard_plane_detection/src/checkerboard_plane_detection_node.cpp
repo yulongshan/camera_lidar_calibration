@@ -29,6 +29,8 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
 
+#include <std_msgs/Bool.h>
+
 struct PointXYZIr
 {
     PCL_ADD_POINT4D
@@ -52,6 +54,7 @@ private:
     ros::NodeHandle nh;
     ros::Subscriber cloud_sub;
     ros::Publisher cloud_pub;
+    ros::Publisher cloud_pub_flag;
 
     // Passthrough filter parameters
     double x_min, x_max;
@@ -73,7 +76,7 @@ public:
         cloud_sub = nh.subscribe("/cloud_in", 1,
                                  &chkrbrdPlaneDetector::callback, this);
         cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/plane_out", 1);
-
+        cloud_pub_flag = nh.advertise<std_msgs::Bool>("/plane_out_flag", 1);
         x_min = readParam<double>(nh, "x_min");
         x_max = readParam<double>(nh, "x_max");
         y_min = readParam<double>(nh, "y_min");
@@ -199,7 +202,13 @@ public:
             cloud_out_ros.header.stamp = cloud_msg->header.stamp;
             cloud_out_ros.header.frame_id = cloud_msg->header.frame_id;
             cloud_pub.publish(cloud_out_ros);
-
+            std_msgs::Bool flag;
+            flag.data = true;
+            cloud_pub_flag.publish(flag);
+        } else {
+            std_msgs::Bool flag;
+            flag.data = false;
+            cloud_pub_flag.publish(flag);
         }
     }
 };

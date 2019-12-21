@@ -1,8 +1,12 @@
 <launch>
-        <param name ="/use_sim_time" value="true"/>
-        <param name ="data_folder_name" value="/home/usl/catkin_ws/src/camera_lidar_calibration/synchronizer/data"/>
+        <param name ="/use_sim_time" value="false"/>
+        <node  pkg="target_detector" name="rotate_os_cloud_node_plane_detector" type="rotate_cloud_node" output="screen">
+	      <remap from="/cloud_in" to="/os1_cloud_node/points"/>
+	      <remap from="/cloud_out" to="/os1_cloud_node/points/rotated"/>
+        </node>
         <node pkg="synchronizer" type="synchronizer_node" name="synchronizer" output="screen">
-              <remap from="/cloud_in" to="/velodyne_points"/>
+              <param name ="data_folder_name" value="$(find synchronizer)/data"/>
+              <remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
               <remap from="/image_left" to="/nerian_stereo/left_image"/>
               <remap from="/image_right" to="/nerian_stereo/right_image"/>
         </node>

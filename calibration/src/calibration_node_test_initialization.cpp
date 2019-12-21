@@ -911,22 +911,22 @@ public:
                 if (distance >= 0.0) {
                     dataFrame line1_datum;
                     line1_datum.lidar_pts = line_1_pcl;
-                    line1_datum.normal = normal1;
+                    line1_datum.normal = normal1/normal1.norm();
                     line1_data.push_back(line1_datum);
 
                     dataFrame line2_datum;
                     line2_datum.lidar_pts = line_2_pcl;
-                    line2_datum.normal = normal2;
+                    line2_datum.normal = normal2/normal2.norm();
                     line2_data.push_back(line2_datum);
 
                     dataFrame line3_datum;
                     line3_datum.lidar_pts = line_3_pcl;
-                    line3_datum.normal = normal3;
+                    line3_datum.normal = normal3/normal3.norm();
                     line3_data.push_back(line3_datum);
 
                     dataFrame line4_datum;
                     line4_datum.lidar_pts = line_4_pcl;
-                    line4_datum.normal = normal4;
+                    line4_datum.normal = normal4/normal4.norm();
                     line4_data.push_back(line4_datum);
 
                     centroid_old = centroid_allLines;

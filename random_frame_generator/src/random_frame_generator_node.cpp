@@ -88,6 +88,7 @@ public:
     }
 
     void readData() {
+
         std::vector<cv::String> filenamesImg;
         std::vector<cv::String> filenamesPCD;
 
@@ -133,13 +134,8 @@ public:
 
         ros::Rate loop_rate(output_fps);
 
+
         while (ros::ok() && i < no_of_frames) {
-            present_time = ros::Time::now();
-            if (i!=0) {
-                double time_taken = present_time.toSec() - previous_time.toSec();
-                ROS_INFO_STREAM("Publishing Data at " << 1/time_taken << " [Hz]");
-            }
-            ros::Time current_time = ros::Time::now();
             int query_integer = random_numbers[i];
             cv::Mat image_in = cv::imread(filenamesImg[query_integer]);
             pcl::PointCloud<PointXYZIr>::Ptr
@@ -148,6 +144,7 @@ public:
             sensor_msgs::ImagePtr msg_ros =
                     cv_bridge::CvImage(std_msgs::Header(), "bgr8",
                                        image_in).toImageMsg();
+            ros::Time current_time = ros::Time::now();
             msg_ros->header.stamp = current_time;
             sensor_msgs::PointCloud2 cloud_ros;
             pcl::toROSMsg(*cloud, cloud_ros);
@@ -155,9 +152,13 @@ public:
             cloud_ros.header.stamp = current_time;
             image_pub_.publish(msg_ros);
             cloud_pub_.publish(cloud_ros);
+            if (i!=0) {
+                double time_taken = current_time.toSec() - previous_time.toSec();
+                ROS_INFO_STREAM("Publishing Data at " << 1/time_taken << " [Hz]");
+            }
             loop_rate.sleep();
             i++;
-            previous_time = present_time;
+            previous_time = current_time;
         }
     }
 

@@ -1,7 +1,7 @@
 <launch>
         <arg name="computer_name" value="usl" />
 
-        <param name ="/use_sim_time" value="true"/>
+        <param name ="/use_sim_time" value="false"/>
         <node pkg="image_line_detection" type="image_line_detection_node" name="right_image_line_detection" output="screen">
               <remap from="/camera/image" to="/nerian_stereo/right_image"/>
               <param name ="cam_config_file_path"

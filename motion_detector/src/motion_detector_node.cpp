@@ -34,6 +34,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <std_msgs/Bool.h>
+
 struct PointXYZIr
 {
     PCL_ADD_POINT4D
@@ -56,6 +58,8 @@ typedef message_filters::sync_policies::ApproximateTime
         <normal_msg::normal,
          normal_msg::normal,
          sensor_msgs::Image,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
          sensor_msgs::PointCloud2> SyncPolicy;
 
 class motionDetector {
@@ -65,6 +69,8 @@ private:
     message_filters::Subscriber<normal_msg::normal> *rvec_sub;
     message_filters::Subscriber<sensor_msgs::Image> *image_sub;
     message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *plane_sub;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *lines_sub;
 
     message_filters::Synchronizer<SyncPolicy> *sync;
 
@@ -97,14 +103,22 @@ public:
         cloud_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh_, "/cloud_in", 1);
+        plane_sub = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh_, "/plane_in", 1);
+        lines_sub = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh_, "/lines_in", 1);
 
         sync = new message_filters::Synchronizer<SyncPolicy>(SyncPolicy(10),
                                                                *tvec_sub,
                                                                *rvec_sub,
                                                                *image_sub,
-                                                               *cloud_sub);
+                                                               *cloud_sub,
+                                                               *plane_sub,
+                                                               *lines_sub);
 
-        sync->registerCallback(boost::bind(&motionDetector::callback, this, _1, _2, _3, _4));
+        sync->registerCallback(boost::bind(&motionDetector::callback, this, _1, _2, _3, _4, _5, _6));
 
         data_folder_name = readParam<std::string>(nh_, "data_folder_name");
         image_folder_name = data_folder_name+"/images/";
@@ -165,7 +179,9 @@ public:
     void callback(const normal_msg::normalConstPtr &tvec_msg,
                   const normal_msg::normalConstPtr &rvec_msg,
                   const sensor_msgs::ImageConstPtr &image_msg,
-                  const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
+                  const sensor_msgs::PointCloud2ConstPtr &cloud_msg,
+                  const sensor_msgs::PointCloud2ConstPtr &plane_msg,
+                  const sensor_msgs::PointCloud2ConstPtr &lines_msg) {
         cv::Mat image_in;
         try {
             image_in = cv_bridge::toCvShare(image_msg, "bgr8")->image;

@@ -68,7 +68,8 @@ private:
     std::ofstream timestamps_file;
 
 public:
-    synchronizeLidarCamera() {
+    synchronizeLidarCamera(ros::NodeHandle n) {
+        nh = n;
         cloud_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh, "/cloud_in", 1);
@@ -152,7 +153,8 @@ public:
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "synchronizer_node");
-    synchronizeLidarCamera sLC;
+    ros::NodeHandle nh("~");
+    synchronizeLidarCamera sLC(nh);
     ros::spin();
     return 0;
 }

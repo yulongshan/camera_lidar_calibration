@@ -77,9 +77,12 @@ private:
     double dist_avg;
     int no_of_frames;
 
+    std::string node_name;
+
 public:
     projectionLidarLines(ros::NodeHandle n) {
         nh = n;
+        node_name = ros::this_node::getName();
         createSubscribers();
 
 
@@ -360,7 +363,7 @@ public:
         for (int i = 0; i < imagePts.size(); i++) {
             cv::circle(image_in, imagePts[i], 3, cv::Scalar(0, 0, 255), -1, 1, 0);
         }
-        cv::imshow("edge projection", image_in);
+        cv::imshow(node_name+" edge projection", image_in);
         cv::waitKey(1);
     }
 };

@@ -1,5 +1,5 @@
 <launch>
-  <include file="$(find calibration)/launch/rotate_os_cloud.launch" />
+  <!--<include file="$(find calibration)/launch/rotate_os_cloud.launch" />-->
   <include file="$(find checkerboard_plane_detection)/launch/checkerboard_plane_detection_node_os.launch" />
   <include file="$(find target_detector)/launch/target_detector_node_os.launch" />
   <include file="$(find target_line_detector)/launch/target_line_detector_node_os.launch" />

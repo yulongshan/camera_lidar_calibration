@@ -124,7 +124,8 @@ cv::Vec3f getEqnOfPlane(cv::Vec3f line) {
                          normal_c.at<double>(1),
                          normal_c.at<double>(2));
 //    ROS_INFO_STREAM("Normal Equation: " << cv::normalize(normal_vec));
-    return cv::normalize(normal_vec);
+//    return cv::normalize(normal_vec);
+    return normal_vec;
 }
 
 cv::Vec3f getEqnOfLine(cv::Vec4f line) {
