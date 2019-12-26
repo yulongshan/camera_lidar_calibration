@@ -7,10 +7,10 @@
          name="left_calibration_node"
          type="calibration_node_test_initialization_node"
          output="screen">
-  	 <param name = "max_no_of_plane_views" value="6"/>
-  	 <param name = "max_no_of_line_views" value="16"/>
+  	 <param name = "max_no_of_plane_views" value="5"/>
+  	 <param name = "max_no_of_line_views" value="36"/>
 
-  	 <param name = "usePlane" value="true"/>
+  	 <param name = "usePlane" value="false"/>
 	 <param name = "plane_selection_threshold" value="0.90"/>
   	 <param name = "useLines" value="true"/>
 	 <param name = "jointSol" value="false"/>
@@ -26,13 +26,13 @@
 	 <remap from="/points/plane" to="/os1_cloud_node/points/plane"/>
 	 <remap from="/line_image1" to="/left/line_image1"/>
 	 <remap from="/line_image2" to="/left/line_image2"/>
-         <remap from="/line_image3" to="/left/line_image3"/>
-         <remap from="/line_image4" to="/left/line_image4"/>
-         <remap from="/normal1" to="/left/normal1"/>
-         <remap from="/normal2" to="/left/normal2"/>
-         <remap from="/normal3" to="/left/normal3"/>
-         <remap from="/normal4" to="/left/normal4"/>
-         <remap from="/normal_plane" to="/left/normal_plane"/>
-         <remap from="/tvec_plane" to="/left/tvec_plane"/>
+	  <remap from="/line_image3" to="/left/line_image3"/>
+	  <remap from="/line_image4" to="/left/line_image4"/>
+	  <remap from="/normal1" to="/left/normal1"/>
+	  <remap from="/normal2" to="/left/normal2"/>
+	  <remap from="/normal3" to="/left/normal3"/>
+	  <remap from="/normal4" to="/left/normal4"/>
+	  <remap from="/normal_plane" to="/left/normal_plane"/>
+	  <remap from="/tvec_plane" to="/left/tvec_plane"/>
   </node>
 </launch>

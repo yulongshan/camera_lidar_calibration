@@ -7,10 +7,10 @@
          name="right_calibration_node"
          type="calibration_node_test_initialization_node"
          output="screen">
-         <param name = "max_no_of_plane_views" value="10"/>
-         <param name = "max_no_of_line_views" value="16"/>
+         <param name = "max_no_of_plane_views" value="5"/>
+         <param name = "max_no_of_line_views" value="32"/>
 
-         <param name = "usePlane" value="true"/>
+         <param name = "usePlane" value="false"/>
          <param name = "plane_selection_threshold" value="0.90"/>
          <param name = "useLines" value="true"/>
          <param name = "jointSol" value="false"/>
@@ -23,8 +23,8 @@
          <param name = "result_str" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/calibration/debug_data/draw/C_T_L_right.txt"/>
          <param name = "initializations_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/initializations_right.csv"/>
          <param name = "results_file" value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/matlab/results_right.csv"/>
-	 <remap from="/points/plane" to="/os1_cloud_node/points/plane"/>
-	 <remap from="/line_image1" to="/right/line_image1"/>
+	     <remap from="/points/plane" to="/os1_cloud_node/points/plane"/>
+	     <remap from="/line_image1" to="/right/line_image1"/>
          <remap from="/line_image2" to="/right/line_image2"/>
          <remap from="/line_image3" to="/right/line_image3"/>
          <remap from="/line_image4" to="/right/line_image4"/>

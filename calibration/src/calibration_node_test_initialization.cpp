@@ -396,23 +396,30 @@ public:
     }
 
     void solveLineOptimization() {
+        ROS_INFO_STREAM("Solving Line Optimization Only");
         init_file.open(initializations_file);
         res_file.open(results_file);
 
         time_t tstart, tend;
         tstart = time(0);
-//        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
-////            addGaussianNoise(transformation_matrix);
-//        Rotn = transformation_matrix.block(0, 0, 3, 3);
-//        ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
-//        translation = transformation_matrix.block(0, 3, 3, 1);
-//        R_t = Eigen::VectorXd(6);
-//        R_t(0) = axis_angle(0);
-//        R_t(1) = axis_angle(1);
-//        R_t(2) = axis_angle(2);
-//        R_t(3) = translation(0);
-//        R_t(4) = translation(1);
-//        R_t(5) = translation(2);
+        Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
+//            addGaussianNoise(transformation_matrix);
+        Rotn = transformation_matrix.block(0, 0, 3, 3);
+        Rotn(0, 0) = 0; Rotn(0, 1) = -1; Rotn(0, 2) = 0;
+        Rotn(1, 0) = 0; Rotn(1, 1) = 0; Rotn(1, 2) = -1;
+        Rotn(2, 0) = 1; Rotn(2, 1) = 0; Rotn(2, 2) = 0;
+        transformation_matrix(0, 3) = 0;
+        transformation_matrix(1, 3) = 0;
+        transformation_matrix(2, 3) = 0;
+        ceres::RotationMatrixToAngleAxis(Rotn.data(), axis_angle.data());
+        translation = transformation_matrix.block(0, 3, 3, 1);
+        R_t = Eigen::VectorXd(6);
+        R_t(0) = axis_angle(0);
+        R_t(1) = axis_angle(1);
+        R_t(2) = axis_angle(2);
+        R_t(3) = translation(0);
+        R_t(4) = translation(1);
+        R_t(5) = translation(2);
 
         R_t_init = R_t;
 

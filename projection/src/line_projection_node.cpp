@@ -37,6 +37,9 @@ typedef message_filters::sync_policies::ApproximateTime
 
 typedef message_filters::sync_policies::ApproximateTime
         <sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
+         sensor_msgs::PointCloud2,
          sensor_msgs::Image> SyncPolicy2;
 
 class projectionLidarLines {
@@ -51,6 +54,11 @@ private:
     message_filters::Subscriber<sensor_msgs::PointCloud2> *line2_cloud_sub;
     message_filters::Subscriber<sensor_msgs::PointCloud2> *line3_cloud_sub;
     message_filters::Subscriber<sensor_msgs::PointCloud2> *line4_cloud_sub;
+
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *line1_cloud_sub2;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *line2_cloud_sub2;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *line3_cloud_sub2;
+    message_filters::Subscriber<sensor_msgs::PointCloud2> *line4_cloud_sub2;
 
     message_filters::Subscriber<sensor_msgs::PointCloud2> *edge_cloud_sub;
     message_filters::Subscriber<sensor_msgs::Image> *image_sub;
@@ -162,10 +170,18 @@ public:
                 message_filters::Subscriber
                         <sensor_msgs::PointCloud2>(nh, "/line4_out", 1);
 
-        edge_cloud_sub = new
+        line1_cloud_sub2 = new
                 message_filters::Subscriber
-                        <sensor_msgs::PointCloud2>(nh, "/edge_cloud_in", 1);
-
+                        <sensor_msgs::PointCloud2>(nh, "/line1_out", 1);
+        line2_cloud_sub2 = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh, "/line2_out", 1);
+        line3_cloud_sub2 = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh, "/line3_out", 1);
+        line4_cloud_sub2 = new
+                message_filters::Subscriber
+                        <sensor_msgs::PointCloud2>(nh, "/line4_out", 1);
         image_sub = new
                 message_filters::Subscriber
                         <sensor_msgs::Image>(nh, "/image_in", 1);
@@ -186,10 +202,13 @@ public:
 
         sync2 = new message_filters::Synchronizer
                 <SyncPolicy2>(SyncPolicy2(10),
-                              *edge_cloud_sub,
+                              *line1_cloud_sub2,
+                              *line2_cloud_sub2,
+                              *line3_cloud_sub2,
+                              *line4_cloud_sub2,
                               *image_sub);
         sync2->registerCallback(boost::bind(&projectionLidarLines::callback,
-                                            this, _1, _2));
+                                            this, _1, _2, _3, _4, _5));
     }
 
     template <typename T>
@@ -219,23 +238,6 @@ public:
             pointCloud_L[1] = cloud_in.points[i].y;
             pointCloud_L[2] = cloud_in.points[i].z;
             pointCloud_L[3] = 1;
-//
-//            Eigen::Vector3d pointCloud_C;
-//            pointCloud_C = C_T_L.block(0, 0, 3, 4) * pointCloud_L;
-//
-//            double X = pointCloud_C[0];
-//            double Y = pointCloud_C[1];
-//            double Z = pointCloud_C[2];
-//
-//            double Xangle = atan2(X, Z)*180/CV_PI;
-//            double Yangle = atan2(Y, Z)*180/CV_PI;
-//
-//
-//            if(Xangle < -fov_x/2 || Xangle > fov_x/2)
-//                continue;
-//
-//            if(Yangle < -fov_y/2 || Yangle > fov_y/2)
-//                continue;
             objectPoints_L.push_back(cv::Point3d(pointCloud_L[0], pointCloud_L[1], pointCloud_L[2]));
         }
         if(objectPoints_L.size() > 0)
@@ -345,7 +347,10 @@ public:
 //        ROS_WARN_STREAM("Avg Reproj Error: " << dist_avg);
     }
 
-    void callback(const sensor_msgs::PointCloud2ConstPtr& edge_cloud_msg,
+    void callback(const sensor_msgs::PointCloud2ConstPtr& line1_cloud_msg,
+                  const sensor_msgs::PointCloud2ConstPtr& line2_cloud_msg,
+                  const sensor_msgs::PointCloud2ConstPtr& line3_cloud_msg,
+                  const sensor_msgs::PointCloud2ConstPtr& line4_cloud_msg,
                   const sensor_msgs::ImageConstPtr& image_msg){
         cv::Mat image_in;
         try
@@ -357,11 +362,30 @@ public:
         {
             ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image_msg->encoding.c_str());
         }
-        pcl::PointCloud<pcl::PointXYZ> edge_cloud_pcl;
-        pcl::fromROSMsg(*edge_cloud_msg, edge_cloud_pcl);
-        std::vector<cv::Point2d> imagePts = getProjectedPts(edge_cloud_pcl);
-        for (int i = 0; i < imagePts.size(); i++) {
-            cv::circle(image_in, imagePts[i], 3, cv::Scalar(0, 0, 255), -1, 1, 0);
+        pcl::PointCloud<pcl::PointXYZ> line_1_pcl;
+        pcl::fromROSMsg(*line1_cloud_msg, line_1_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_2_pcl;
+        pcl::fromROSMsg(*line2_cloud_msg, line_2_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_3_pcl;
+        pcl::fromROSMsg(*line3_cloud_msg, line_3_pcl);
+        pcl::PointCloud<pcl::PointXYZ> line_4_pcl;
+        pcl::fromROSMsg(*line4_cloud_msg, line_4_pcl);
+
+        std::vector<cv::Point2d> imagePts1 = getProjectedPts(line_1_pcl);
+        std::vector<cv::Point2d> imagePts2 = getProjectedPts(line_2_pcl);
+        std::vector<cv::Point2d> imagePts3 = getProjectedPts(line_3_pcl);
+        std::vector<cv::Point2d> imagePts4 = getProjectedPts(line_4_pcl);
+        for (int i = 0; i < imagePts1.size(); i++) {
+            cv::circle(image_in, imagePts1[i], 3, cv::Scalar(0, 0, 255), -1, 1, 0);
+        }
+        for (int i = 0; i < imagePts2.size(); i++) {
+            cv::circle(image_in, imagePts2[i], 3, cv::Scalar(0, 255, 0), -1, 1, 0);
+        }
+        for (int i = 0; i < imagePts3.size(); i++) {
+            cv::circle(image_in, imagePts3[i], 3, cv::Scalar(255, 0, 0), -1, 1, 0);
+        }
+        for (int i = 0; i < imagePts4.size(); i++) {
+            cv::circle(image_in, imagePts4[i], 3, cv::Scalar(255, 0, 255), -1, 1, 0);
         }
         cv::imshow(node_name+" edge projection", image_in);
         cv::waitKey(1);

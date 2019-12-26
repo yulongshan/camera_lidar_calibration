@@ -10,7 +10,7 @@ n = length(files1);
 scale = 1;
 
 for i = 1:n
-  figure(1)
+  figure(i)
   csv1 = load((strcat('../left/lines/lidar/', files1(i).name)));
   xP1 = csv1(:, 1); yP1 = csv1(:, 2); zP1 = csv1(:, 3);
 %  [A1, B1] = fit3DLine(csv1);

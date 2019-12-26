@@ -12,7 +12,7 @@
         <param name = "y_min" type= "double" value= "-2"/>
         <param name = "y_max" type= "double" value= "2"/>
         <param name = "z_min" type= "double" value= "-1"/>
-        <param name = "z_max" type= "double" value= "300"/>
+        <param name = "z_max" type= "double" value= "3"/>
         <param name = "min_pts" type= "int" value= "150"/>
         <param name = "ransac_threshold" type= "double" value= "0.01"/>
         <param name = "remove_outlier" value="true"/>
@@ -68,7 +68,7 @@
     </node>
 
     <node pkg = "motion_detector"
-          name="motion_detector_node_left"
+          name="motion_detector_node_os_left"
           type="motion_detector_node"
           output="screen">
           <remap from="/tvec_in" to="/left/tvec_plane"/>
@@ -82,7 +82,7 @@
     </node>
 
     <node pkg = "motion_detector"
-         name="motion_detector_node_right"
+         name="motion_detector_node_os_right"
          type="motion_detector_node"
          output="screen">
 	     <remap from="/tvec_in" to="/right/tvec_plane"/>

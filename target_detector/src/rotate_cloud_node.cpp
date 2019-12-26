@@ -43,7 +43,6 @@ struct PointXYZIR8Y
     ; // quad-word XYZ
     float intensity; ///< laser intensity reading
     uint8_t ring; ///< laser ring number
-    float yaw; ///< yaw angle of the point
     float range;EIGEN_MAKE_ALIGNED_OPERATOR_NEW // ensure proper alignment
 }EIGEN_ALIGN16;
 POINT_CLOUD_REGISTER_POINT_STRUCT(
@@ -52,8 +51,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
         (float, y, y)
         (float, z, z)
         (float, intensity, intensity)
-        (uint8_t, ring, ring)
-        (float, yaw, yaw))
+        (uint8_t, ring, ring))
 
 class rotateCloud {
 private:

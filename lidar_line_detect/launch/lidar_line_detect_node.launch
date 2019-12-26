@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+  <arg name="computer_name" value="usl"/>
+
+  <param name ="/use_sim_time" value="true"/>
+
+  <node pkg="target_detector" name="rotate_os_cloud_node" type="rotate_cloud_node">
+    <remap from="/cloud_in" to="/os1_cloud_node/points"/>
+    <remap from="/cloud_out" to="/os1_cloud_node/points/rotated"/>
+  </node>
+
+  <node  pkg="lidar_line_detect" name="os_lidar_line_detect" type="lidar_line_detect_node" output="screen">
+	<remap from="/cloud_in" to="/os1_cloud_node/points/rotated"/>
+    <param name="x_min" value="0.5"/>
+    <param name="x_max" value="6"/>
+    <param name="y_min" value="-2"/>
+    <param name="y_max" value="2"/>
+    <param name="z_min" value="-1"/>
+    <param name="z_max" value="3"/>
+    <param name="min_pts" value="100"/>
+    <param name="ransac_threshold_fine" value="0.01"/>
+    <param name="ransac_threshold_coarse" value="0.05"/>
+    <param name="ransac_threshold_line" value="0.02"/>
+    <param name="dot_prod_high_val" value="0.90"/>
+    <param name="dot_prod_low_val" value="0.10"/>
+    <param name="min_points_per_line" value="4"/>
+    <param name="min_points_per_ring" value="10"/>
+    <param name="no_of_rings" value="64"/>
+    <param name="target_config_file_path"
+           value="/home/$(arg computer_name)/catkin_ws/src/camera_lidar_calibration/config/target_3.yaml"/>
+  </node>
+
+</launch>

@@ -39,3 +39,12 @@ target_link_libraries(${PROJECT_NAME}_node
         ${PCL_LIBRARIES}
         ${OpenCV_LIBS}
 )
+
+add_executable(rotate_cloud_node
+        src/rotate_cloud_node.cpp
+        )
+
+target_link_libraries(rotate_cloud_node
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        )
