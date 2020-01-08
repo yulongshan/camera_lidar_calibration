@@ -16,7 +16,7 @@
 #include "opencv2/opencv.hpp"
 #include <pcl/io/pcd_io.h>
 #include <boost/smart_ptr/shared_ptr.hpp>
-#include <pcl/visualization/pcl_visualizer.h>
+//#include <pcl/visualization/pcl_visualizer.h>
 
 
 
